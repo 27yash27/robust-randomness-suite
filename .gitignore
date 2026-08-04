@@ -1,0 +1,26 @@
+# Compiled binaries and objects
+rtest
+test-generators
+a.out
+*.o
+*.a
+tmp.out
+
+# Per-run test outputs from the batch scripts
+*.tst1m
+*.tst10m
+*.tst100m
+*.tst1g
+*.tst10g
+
+# LaTeX build products (doc/) — note: the committed *.pdf in doc/pdfs are kept
+*.aux
+*.log
+*.toc
+
+# Python
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store

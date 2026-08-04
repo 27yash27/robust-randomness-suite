@@ -1,0 +1,130 @@
+ROBUST RANDOMNESS TESTS -- SUITE EXPANSION (2026)
+=================================================
+
+This document supplements the original rtest suite. For the underlying theory
+and the initial tests (0-21), see README.md and robust/doc/tests-description.tex.
+
+
+1. OVERVIEW
+-----------
+
+The robust framework replaces the usual asymptotic p-values -- which often lack
+proven error bounds -- with a two-sample Kolmogorov-Smirnov comparison. For a
+test statistic t(B) we form two samples:
+
+  U: t applied directly to blocks from the tested generator A;
+  V: t applied to blocks XOR-ed with a fixed reference ("etalon") E (that is, A xor E).
+
+If A is truly random, then A xor E is also random for any fixed E, whatever the
+quality of E. Since the same code for t is applied to both samples, a rough
+approximation or a coding error affects U and V the same way and cancels in the
+comparison. Validity is therefore structural: an implementation error can cost
+sensitivity, but it cannot cause a good generator to be rejected.
+
+
+2. THE EXPANSION
+----------------
+
+We added twenty tests (numbers 22-41), adapting statistics from the Diehard,
+Dieharder, and NIST batteries. The suite now has 41 test families and covers the
+Diehard battery and about 93% of NIST STS. Each new test and its origin:
+
+  #   Test                             Source suite(s)        File
+  --  -------------------------------  ---------------------  ------------------------------
+  22  DNA                              Diehard + Dieharder    test_dna.c
+  23  Count-the-1s (stream)            Diehard + Dieharder    test_count1s_stream.c
+  24  Count-the-1s (specific bytes)    Diehard + Dieharder    test_count1s_byte.c
+  25  Parking Lot                      Diehard + Dieharder    test_parking.c
+  26  Squeeze                          Diehard + Dieharder    test_squeeze.c
+  27  OPERM5                           Diehard + Dieharder    test_operm5.c
+  28  Craps                            Diehard + Dieharder    test_craps.c
+  29  DAB DCT                          Dieharder              test_dab_dct.c
+  30  DAB Filtering                    Dieharder              test_dab_filtering.c
+  31  Linear Complexity                NIST + Dieharder       test_linear_complexity.c
+  32  Random Excursions                NIST                   test_random_excursions.c
+  33  Random Excursions Variant        NIST                   test_random_excursions_variant.c
+  34  3D Spheres                       Diehard + Dieharder    test_3d_spheres.c
+  35  Marsaglia-Tsang GCD              Dieharder              test_gcd.c
+  36  Non-overlapping Template Match   NIST                   test_nonperiodic.c
+  37  Runs                             NIST                   test_runs_nist.c
+  38  Longest Run of Ones              NIST                   test_longest_run.c
+  39  Cumulative Sums                  NIST                   test_cusum.c
+  40  Approximate Entropy              NIST                   test_approximate_entropy.c
+  41  Maurer's Universal               NIST                   test_universal.c
+
+("Diehard" is Marsaglia's battery, "Dieharder" R. G. Brown's extension, "NIST"
+the NIST Statistical Test Suite, SP 800-22.)
+
+
+3. AI-ASSISTED IMPLEMENTATION
+-----------------------------
+
+The statistics for tests 22-41 were drafted with AI assistance, in a loop:
+
+  1. an initial version written from the test's specification (Codex);
+  2. independent review for logic and memory errors (Claude Code);
+  3. a check against the original source papers (NotebookLM);
+  4. a human audit, compilation under sanitizers, and the checks in section 6.
+
+Model agreement reduces mistakes but does not prove correctness. It is only safe
+because of section 1: any error left in a statistic can cost sensitivity, never
+validity.
+
+
+4. REPORTING: BEST OBJECTIVE IN SWEEP
+-------------------------------------
+
+The KS objective is not always monotone in the sample size. As the number of
+blocks p grows toward the end of the file, failing and passing windows mix and
+the detection signal can weaken ("wash out"). A sweep should therefore report
+the best (smallest) objective observed during the adaptive doubling/bisection
+search, not the value at the file ceiling. Using the ceiling value undercounts
+real detections; it was also the source of an apparent "XOR amplification"
+effect, which disappeared once the best-in-sweep value was used. XOR mode does
+not add signal -- it only consumes data faster, so it reaches the ceiling sooner.
+
+
+5. BUILDING AND RUNNING
+-----------------------
+
+Dependencies:
+  GMP, GSL   -- statistics and the exact (multiprecision) KS backup
+  OpenSSL    -- deterministic reference generators (bit-for-bit across platforms)
+
+  Debian/Ubuntu:  apt-get install libgmp-dev libgsl-dev libssl-dev
+  macOS:          brew install gmp gsl openssl
+
+Run "make" in robust/ to build the rtest binary. A single test is invoked as
+
+  ./rtest -x -f GENERATOR -e REFERENCE -p P -q Q -n N -t T -d D -o OUT
+
+(-x XOR mode; -f file under test; -e reference, fixed in advance; -t test number;
+-n values per call; -d dimension; -p, -q the two sample sizes).
+
+
+6. VALIDATION
+-------------
+
+The new tests were run against nine NIST reference generators:
+
+  - controls (Blum-Blum-Shub, Linear Congruential, Micali-Schnorr): no false
+    positives in any configuration;
+  - six known-defective generators: all six detected (best objective below the
+    10^-10 threshold);
+  - tests 32/33 (Random Excursions) correctly return "skip" on generators too
+    biased to produce the required number of cycles -- a skip is a structural
+    rejection of the generator, not a failure of the test.
+
+Results agreed whether or not the XOR step was used.
+
+
+7. LIMITATIONS
+--------------
+
+- Overlapping Template Matching (NIST) is not yet ported; it is the only
+  remaining gap for full NIST STS coverage.
+- The Diehard 31x31 binary-rank test is omitted as redundant with the
+  implemented 32-bit rank tests.
+- XOR mode consumes bits twice as fast as plain mode, so it reaches
+  end-of-file earlier.
+- The sweep harness caps p and q at 10,000.

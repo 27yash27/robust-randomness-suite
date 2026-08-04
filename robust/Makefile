@@ -1,0 +1,55 @@
+# generators.h, generators.c: tools for creating generators and testing
+#
+# rtest.c: main file that runs robust tests, needs rtest.h
+# test_func.c: file with different functions used for testing, needs rtest.h
+# TESTS_C: additional tests
+# CPP_CODE: parts of the code that involve c++ (here and in ../spectral_tests)
+# CPP_INCLUDE: files used by c++ code
+
+# generators.c, generators.h: definition of generators
+# ../kolmogorov-smirnov: tools for computing Kolmogorov-Smirnov values
+
+# rtest1m.sh, rtest10m.sh, rtest100m.sh, rtest1g.sh, rtest10g.sh: 
+# tests that make sense for 1Mb/10Mb/100Mb/1Gb/10Gb files
+
+# compiler definition
+CC = g++
+
+CPP_INCLUDE = minimal_distance.hpp ../spectral_tests/specgraph.h ../spectral_tests/spectral_rtest.h ../spectral_tests/rand.h
+
+# C++ files for distance and spectral tests
+
+CPP_CODE =  ../spectral_tests/specgraph.cpp  ../spectral_tests/spectral_rtest.cpp  ../spectral_tests/rand.cpp
+
+SCRIPTS = rtest1m.sh rtest10m.sh rtest100m.sh rtest1g.sh rtest10g.sh
+
+# different tests implemented in several C files
+TESTS_C = test_func.c test_opso.c test_oqso.c test_sts_serial.c test_bytedistrib.c test_runs.c test_sums.c test_ent.c test_lz.c test_fft.c test_rank.c test_bitstream.c test_birthday.c test_dist2d.c test_spectral.c test_ks1.c test_monobit.c test_nist_block.c test_dna.c test_count1s_stream.c test_count1s_byte.c test_parking.c test_squeeze.c test_operm5.c test_craps.c test_dab_dct.c test_dab_filtering.c test_linear_complexity.c test_random_excursions.c test_random_excursions_variant.c test_3d_spheres.c test_gcd.c test_nonperiodic.c test_runs_nist.c test_longest_run.c test_cusum.c test_approximate_entropy.c test_universal.c
+
+# for Kolmogorov-Smirnov p-value computation
+KS_HEADERS = ../kolmogorov-smirnov/ksmirnov.h ../kolmogorov-smirnov/k1smirnov.h ../kolmogorov-smirnov/ks2.h
+KS_C = ../kolmogorov-smirnov/ksmirnov.c ../kolmogorov-smirnov/k1smirnov.c ../kolmogorov-smirnov/ks2mp.c
+
+# needed for gsl library and for standard math library
+FLAGS = -I /usr/local/include -L /usr/local/bin/ -lgsl -lgslcblas -lm -lgmp -fsanitize=address
+
+rtest: rtest.c test_func.h $(TESTS_C) $(CPP_INCLUDE) $(CPP_CODE) generators.c generators.h $(KS_HEADERS) $(KS_C) ../general/general.c ../general/general.h; \
+$(CC) -o rtest rtest.c $(TESTS_C) $(CPP_CODE) generators.c $(KS_C) ../general/general.c $(FLAGS)
+
+test-generators: test-generators.c generators.c generators.h; \
+   gcc -o test-generators test-generators.c generators.c;
+   
+test-generators-run: test-generators;\
+   ./test-generators > tmp.out; diff test-generators.out tmp.out;\
+   echo "No diff output means OK"
+   
+clean: ; \
+   rm *~ *.o a.out rtest test-generators tmp.out; \
+   cd doc; make clean; cd ..; \
+   exit 0;
+
+install: rtest; \
+sudo cp rtest $(SCRIPTS) /usr/local/bin/
+
+uninstall: ; \
+sudo rm /usr/local/bin/rtest /usr/local/bin/rtest*m.sh
