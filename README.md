@@ -97,15 +97,15 @@ scripts to `/usr/local/bin` so you can call them from anywhere.
    A few MB is enough for the small tests; the large ones (DNA, OPERM5, …) want
    100 MB–1 GB.
 
-2. **Run one test.** Use XOR mode (`-x`) against the provided reference file
-   `data/data.e`. For example, NIST Runs (test 37):
+2. **Run one test.** Use XOR mode (`-x`) against a fixed reference ("etalon")
+   file. For example, NIST Runs (test 37):
 
    ```bash
    ./rtest -x -f yourgen.bin -e ../data/data.e -p 40 -q 40 -n 2000 -t 37 -d 1 -o out
    ```
 
-   It prints the two-sample KS p-value (in a quick check here, `0.16…` for a
-   sound generator). The flags:
+   It prints the two-sample KS p-value — any value consistent with uniform
+   (roughly 0.1–0.9) is a pass. The flags:
 
    - `-x` XOR mode — compare the generator against generator ⊕ reference
    - `-f` your generator file &nbsp; `-e` the reference/etalon file
@@ -113,17 +113,27 @@ scripts to `/usr/local/bin` so you can call them from anywhere.
    - `-p`, `-q` the two sample sizes &nbsp; `-o` output prefix
 
    Each test expects specific `-t`/`-d`/`-n` values — they aren't free to guess.
-   The right settings for every test are already encoded in the batch scripts and
-   in `scripts/robust_test_catalog.py`, so use those rather than hand-tuning.
+   The right settings for every test are in `scripts/robust_test_catalog.py`
+   (and the battery scripts below), so use those rather than hand-tuning.
 
-3. **Or run a whole battery at once.** After `make install`:
+   **The etalon (`-e`) can be any fixed file** — validity holds regardless of its
+   quality — but in XOR mode it is consumed at the same rate as your generator, so
+   for anything beyond the lightest tests use a **large binary random file**
+   (at least your generator's size), e.g. `head -c 200000000 /dev/urandom > etalon.bin`.
+   The shipped `data/data.e.32` is small and only suffices for light tests.
+
+3. **Or run a whole battery at once.** From `robust/` (after `make`):
 
    ```bash
-   ./rtest1m.sh yourgen.bin ../data/data.e     # 1 MB file; also 10m, 100m, 1g, 10g
+   ./rtest_expansion.sh yourgen.bin etalon.bin   # the 20 new tests (22–41)
    ```
 
-   This runs every test that makes sense for that file size and writes the
-   results to `yourgen.bin.tst1m`.
+   This runs tests 22–41 at the settings in `scripts/robust_test_catalog.py` and
+   appends the results to `yourgen.bin.expansion`. Both files should be large
+   binary files (see the etalon note above). The upstream batteries
+   `rtest1m.sh … rtest10g.sh` cover Shen's original tests (roughly 0–16) for
+   1 MB … 10 GB files — note their output filenames vary (`.tst1m`, then
+   `.test10m` / `.test100m` / `.test1g` / `.test10g`).
 
 **Reading the result.** A p-value that looks uniform (say, above 0.01) is a pass:
 no evidence your generator differs from random under that test. A very small
@@ -147,9 +157,9 @@ Python 3 tooling built around the `rtest` binary:
 - `plot_distribs_svg.py` — draws the two-curve ECDF comparison charts (overlapping curves = a good generator; separated = a bad one). SVG, no plotting library required.
 - `run_rtest_t22_sweep.py … t31_sweep.py` — per-test sweep helpers.
 
-These are research tools, not polished CLIs: a couple of them default to the
-author's local paths for the generator directory and etalon file, so pass the
-corresponding `--` flags for your own setup.
+These are research tools, not polished CLIs: several of them assume the author's
+local folder layout (absolute `/Users/...` paths and sibling `My-*` directories),
+so they need their path flags set — or light editing — to run elsewhere.
 
 ## Reproducing the validation
 
@@ -163,6 +173,16 @@ The generator files (~tens of GB per size class) and the full campaign outputs
 are far too large to host here, so they are not included; `scripts/` regenerates
 them from a generator directory you supply. `robust/doc/expansion-notes.txt` has
 the full account of the method, the reporting convention, and the results.
+
+## Notes and known issues
+
+- Per-test documentation for the new tests (22–41) is in
+  `robust/doc/expansion-notes.txt`; the LaTeX `tests-description.tex` covers the
+  original tests 0–21 only (its coverage table predates the expansion).
+- `robust/Makefile` builds with `-fsanitize=address` — useful during development,
+  but a large slowdown; drop it from `FLAGS` for production multi-GB sweeps.
+- The `pipes/` and `wav/` upstream utilities need OpenGL/GLUT and may not link on
+  recent macOS. They are unrelated to `rtest` and not needed to run the tests.
 
 ## How the construction stays valid — and why AI could help build it
 
