@@ -30,20 +30,21 @@ def canonical_generator_code(index: int, fname: str) -> str:
 
 
 def main() -> int:
-    project = Path("/Users/yashbelani/Library/CloudStorage/Dropbox/0-Shen Research/0-Yash_New_Mac_Shen-Project")
-    sweep = project / "Yash-New-Computer-Testsweeps/scripts/run_maximal_p_sweep.py"
+    sweep = Path(__file__).resolve().parent / "run_maximal_p_sweep.py"
 
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--campaign", required=True)
-    parser.add_argument("--generator-dir", type=Path,
-                        default=project / "My-RNGs-Tests" / "NIST_Bad_Generators_20260409_0810")
+    parser.add_argument("--generator-dir", type=Path, required=True,
+                        help="Directory containing the generator .bin files to test")
+    parser.add_argument("--etalon", type=Path, required=True,
+                        help="Fixed reference file, passed through to run_maximal_p_sweep.py")
     parser.add_argument("--generator-glob", default="*.bin")
     parser.add_argument("--n-groups", type=int, default=3)
     parser.add_argument("--tests", nargs="+", type=int, default=list(range(22, 32)))
     parser.add_argument("--xor", action=argparse.BooleanOptionalAction, default=True)
-    parser.add_argument("--results-root", type=Path,
-                        default=project / "My-robust-Test-Results" / "maximal_sweeps")
+    parser.add_argument("--results-root", type=Path, default=Path("sweep_results"),
+                        help="Where to write results (default: ./sweep_results)")
     args = parser.parse_args()
 
     gens = sorted(args.generator_dir.glob(args.generator_glob))
@@ -78,11 +79,12 @@ def main() -> int:
         cmd = [sys.executable, "-u", str(sweep),
                "--campaign", f"{args.campaign}_g{gi}",
                "--generator-dir", str(gdir),
-               "--results-root", str(args.results_root),
+               "--etalon", str(args.etalon.resolve()),
+               "--results-root", str(args.results_root.resolve()),
                "--xor" if args.xor else "--no-xor",
                "--tests"]
         cmd.extend(str(t) for t in args.tests)
-        proc = subprocess.Popen(cmd, stdout=log_f, stderr=subprocess.STDOUT, cwd=project)
+        proc = subprocess.Popen(cmd, stdout=log_f, stderr=subprocess.STDOUT)
         procs.append((gi, proc, group, log_path))
         print(f"  Group {gi}: PID {proc.pid}  {len(group)} gens  log={log_path}")
         for src in group:

@@ -46,6 +46,32 @@ what is new or changed, to make review against upstream straightforward.
 - `README.md` — this suite's README. Shen's original is kept as `README-upstream.md`.
 - `CHANGES-vs-upstream.md` — this file.
 
+## Issues found in upstream files (reported, not changed)
+
+These were found while testing the expansion. They are in Shen's original files,
+so they are left alone here and listed for him to decide on.
+
+1. **`kolmogorov-smirnov/ksmirnov.c` — `psmirnov2x` underflows above ~2500
+   samples.** The recursion returns 0, so `rtest` reports a p-value of exactly
+   1.0 regardless of the data. Checked directly: at a fixed deviation of
+   `1/sqrt(n)` it gives 0.702 at n=100 and 0.692 at n=2000, then exactly
+   1.0 from n=3000 upward. The exact GMP routine (`-k`, `ks2mp.c`) returns
+   0.685 at n=3400, so `-k` is a correct workaround. This matters because
+   `rtest.c` permits `-p`/`-q` up to 10000.
+
+2. **`robust/rtest.c` — stack overflow on high-dimension tests.**
+   `test_p_value` holds both samples in stack VLAs sized `n * dimension`. Test
+   36 (dimension 148) segfaults with no message above about `-p 3400` on macOS,
+   and near half that on Linux, where `long double` is 16 bytes.
+   `ulimit -s unlimited` avoids it.
+
+3. **`kolmogorov-smirnov/ks2.c` has a leftover debug `printf` in `ks2bar`.**
+   Harmless in practice: the Makefile links `ks2mp.c` instead, so this file is
+   not compiled into `rtest`.
+
+4. **`robust/Makefile` builds with `-fsanitize=address`** and hardcodes
+   `/usr/local` include and library paths.
+
 ## Not modified
 
 `robust/rtest.c`, `robust/generators.c` / `.h`, the entire `kolmogorov-smirnov/`

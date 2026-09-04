@@ -36,23 +36,23 @@ FLOAT_LINE_RE = re.compile(
 
 
 def parse_args() -> argparse.Namespace:
-    project_root = Path(__file__).resolve().parent.parent.parent
+    repo_root = Path(__file__).resolve().parent.parent
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--campaign", required=True, help="Short campaign tag, e.g. nist_max_20260502")
     parser.add_argument(
         "--generator-dir",
         type=Path,
-        default=project_root / "My-RNGs-Tests" / "NIST_Bad_Generators_20260409_0810",
-        help="Directory containing tested .bin files (default: NIST 1 GB set, 2026-04-09)",
+        required=True,
+        help="Directory containing the generator .bin files to test",
     )
     parser.add_argument("--generator-glob", default="*.bin")
     parser.add_argument("--tests", nargs="+", type=int, default=sorted(TEST_CATALOG.keys()),
                         help="Test numbers to run (default: all in catalog)")
-    parser.add_argument("--etalon", type=Path,
-                        default=Path("/Users/yashbelani/Library/CloudStorage/Dropbox/test_data/etal.bin"))
-    parser.add_argument("--rtest", type=Path, default=project_root / "rtest-main" / "robust" / "rtest")
-    parser.add_argument("--results-root", type=Path,
-                        default=project_root / "My-robust-Test-Results" / "maximal_sweeps")
+    parser.add_argument("--etalon", type=Path, required=True,
+                        help="Fixed reference file, at least as large as the generator files")
+    parser.add_argument("--rtest", type=Path, default=repo_root / "robust" / "rtest")
+    parser.add_argument("--results-root", type=Path, default=Path("sweep_results"),
+                        help="Where to write results (default: ./sweep_results)")
     parser.add_argument("--xor", action=argparse.BooleanOptionalAction, default=True,
                         help="Pass -x so comparison side uses tested xor etalon (default on)")
     parser.add_argument("--max-generators", type=int, default=0, help="Cap for smoke testing; 0 = all")
@@ -266,8 +266,7 @@ def generate_chart(plot_script: Path, run_dir: Path, coord: int, out_file: Path,
 
 def main() -> int:
     args = parse_args()
-    project_root = Path(__file__).resolve().parent.parent.parent
-    plot_script = (project_root / "Yash-New-Computer-Testsweeps" / "scripts" / "plot_distribs_svg.py").resolve()
+    plot_script = (Path(__file__).resolve().parent / "plot_distribs_svg.py").resolve()
 
     try:
         start_overrides = parse_start_p_overrides(args.start_p)
