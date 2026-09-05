@@ -1,0 +1,10 @@
+generator_code,filename,path
+g01_blum_blum_shub,bad_Blum-Blum-Shub_1GB.bin,/Users/yashbelani/Library/CloudStorage/Dropbox/0-Shen Research/0-Yash_New_Mac_Shen-Project/My-RNGs-Tests/NIST_Bad_Generators_20260409_0810/bad_Blum-Blum-Shub_1GB.bin
+g02_cubic_congruential_1gb,bad_Cubic_Congruential_1GB.bin,/Users/yashbelani/Library/CloudStorage/Dropbox/0-Shen Research/0-Yash_New_Mac_Shen-Project/My-RNGs-Tests/NIST_Bad_Generators_20260409_0810/bad_Cubic_Congruential_1GB.bin
+g03_g_using_sha,bad_G_Using_SHA-1_1GB.bin,/Users/yashbelani/Library/CloudStorage/Dropbox/0-Shen Research/0-Yash_New_Mac_Shen-Project/My-RNGs-Tests/NIST_Bad_Generators_20260409_0810/bad_G_Using_SHA-1_1GB.bin
+g04_linear_congruential_1gb,bad_Linear_Congruential_1GB.bin,/Users/yashbelani/Library/CloudStorage/Dropbox/0-Shen Research/0-Yash_New_Mac_Shen-Project/My-RNGs-Tests/NIST_Bad_Generators_20260409_0810/bad_Linear_Congruential_1GB.bin
+g05_micali_schnorr_1gb,bad_Micali-Schnorr_1GB.bin,/Users/yashbelani/Library/CloudStorage/Dropbox/0-Shen Research/0-Yash_New_Mac_Shen-Project/My-RNGs-Tests/NIST_Bad_Generators_20260409_0810/bad_Micali-Schnorr_1GB.bin
+g06_modular_exponentiation_1gb,bad_Modular_Exponentiation_1GB.bin,/Users/yashbelani/Library/CloudStorage/Dropbox/0-Shen Research/0-Yash_New_Mac_Shen-Project/My-RNGs-Tests/NIST_Bad_Generators_20260409_0810/bad_Modular_Exponentiation_1GB.bin
+g07_quadratic_congruential_ii,bad_Quadratic_Congruential_II_1GB.bin,/Users/yashbelani/Library/CloudStorage/Dropbox/0-Shen Research/0-Yash_New_Mac_Shen-Project/My-RNGs-Tests/NIST_Bad_Generators_20260409_0810/bad_Quadratic_Congruential_II_1GB.bin
+g08_quadratic_congruential_i,bad_Quadratic_Congruential_I_1GB.bin,/Users/yashbelani/Library/CloudStorage/Dropbox/0-Shen Research/0-Yash_New_Mac_Shen-Project/My-RNGs-Tests/NIST_Bad_Generators_20260409_0810/bad_Quadratic_Congruential_I_1GB.bin
+g09_xor_1gb,bad_XOR_1GB.bin,/Users/yashbelani/Library/CloudStorage/Dropbox/0-Shen Research/0-Yash_New_Mac_Shen-Project/My-RNGs-Tests/NIST_Bad_Generators_20260409_0810/bad_XOR_1GB.bin

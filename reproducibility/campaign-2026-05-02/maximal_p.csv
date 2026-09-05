@@ -1,0 +1,91 @@
+generator_code,generator_file,test_num,title,start_p,max_p,final_objective,beats_threshold,bad_reason_at_ceiling,n_probes
+g01_blum_blum_shub,bad_Blum-Blum-Shub_1GB.bin,22,DNA,3,59,0.0079201283454577442,no,parse_error,12
+g01_blum_blum_shub,bad_Blum-Blum-Shub_1GB.bin,23,Count the 1s in a Stream of Bytes,100,1953,0.26153499555891302,no,eof_zero,16
+g01_blum_blum_shub,bad_Blum-Blum-Shub_1GB.bin,24,Count the 1s for Specific Bytes,10,488,0.10373014165646088,no,parse_error,16
+g01_blum_blum_shub,bad_Blum-Blum-Shub_1GB.bin,25,Parking,10,5207,1,no,parse_error,23
+g01_blum_blum_shub,bad_Blum-Blum-Shub_1GB.bin,26,Squeeze,2,54,0.21367451088329481,no,parse_error,11
+g01_blum_blum_shub,bad_Blum-Blum-Shub_1GB.bin,27,OPERM5,5,124,0.98960470960951941,no,parse_error,13
+g01_blum_blum_shub,bad_Blum-Blum-Shub_1GB.bin,28,Craps,5,92,0.039264345067681949,no,parse_error,12
+g01_blum_blum_shub,bad_Blum-Blum-Shub_1GB.bin,29,DAB DCT,5,10000,1,no,uncapped,12
+g01_blum_blum_shub,bad_Blum-Blum-Shub_1GB.bin,30,DAB Filtering,5,10000,1,no,uncapped,12
+g01_blum_blum_shub,bad_Blum-Blum-Shub_1GB.bin,31,Linear Complexity,5,10000,1,no,uncapped,12
+g02_cubic_congruential_1gb,bad_Cubic_Congruential_1GB.bin,22,DNA,3,53,4.4400000000000002e-16,yes,parse_error,12
+g02_cubic_congruential_1gb,bad_Cubic_Congruential_1GB.bin,23,Count the 1s in a Stream of Bytes,100,1953,0.35528197750099255,no,eof_zero,16
+g02_cubic_congruential_1gb,bad_Cubic_Congruential_1GB.bin,24,Count the 1s for Specific Bytes,10,482,1.1100000000000001e-15,yes,parse_error,15
+g02_cubic_congruential_1gb,bad_Cubic_Congruential_1GB.bin,25,Parking,10,5207,1,no,parse_error,23
+g02_cubic_congruential_1gb,bad_Cubic_Congruential_1GB.bin,26,Squeeze,2,30,2.2200000000000001e-16,yes,eof_zero,9
+g02_cubic_congruential_1gb,bad_Cubic_Congruential_1GB.bin,27,OPERM5,5,124,0.040160299036776204,no,parse_error,13
+g02_cubic_congruential_1gb,bad_Cubic_Congruential_1GB.bin,28,Craps,5,92,0.23800921910258288,no,parse_error,12
+g02_cubic_congruential_1gb,bad_Cubic_Congruential_1GB.bin,29,DAB DCT,5,10000,1,no,uncapped,12
+g02_cubic_congruential_1gb,bad_Cubic_Congruential_1GB.bin,30,DAB Filtering,5,10000,1,no,uncapped,12
+g02_cubic_congruential_1gb,bad_Cubic_Congruential_1GB.bin,31,Linear Complexity,5,10000,1,no,uncapped,12
+g03_g_using_sha,bad_G_Using_SHA-1_1GB.bin,22,DNA,3,53,4.4400000000000002e-16,yes,parse_error,12
+g03_g_using_sha,bad_G_Using_SHA-1_1GB.bin,23,Count the 1s in a Stream of Bytes,100,1953,7.77e-16,yes,eof_zero,16
+g03_g_using_sha,bad_G_Using_SHA-1_1GB.bin,24,Count the 1s for Specific Bytes,10,482,1.1100000000000001e-15,yes,parse_error,15
+g03_g_using_sha,bad_G_Using_SHA-1_1GB.bin,25,Parking,10,5207,1,no,parse_error,23
+g03_g_using_sha,bad_G_Using_SHA-1_1GB.bin,26,Squeeze,2,30,2.2200000000000001e-16,yes,eof_zero,9
+g03_g_using_sha,bad_G_Using_SHA-1_1GB.bin,27,OPERM5,5,120,6.6599999999999998e-16,yes,parse_error,12
+g03_g_using_sha,bad_G_Using_SHA-1_1GB.bin,28,Craps,5,111,2.2200000000000001e-16,yes,parse_error,12
+g03_g_using_sha,bad_G_Using_SHA-1_1GB.bin,29,DAB DCT,5,10000,1,no,uncapped,12
+g03_g_using_sha,bad_G_Using_SHA-1_1GB.bin,30,DAB Filtering,5,10000,1,no,uncapped,12
+g03_g_using_sha,bad_G_Using_SHA-1_1GB.bin,31,Linear Complexity,5,10000,1,no,uncapped,12
+g04_linear_congruential_1gb,bad_Linear_Congruential_1GB.bin,22,DNA,3,59,0.0021079212464604198,no,parse_error,12
+g04_linear_congruential_1gb,bad_Linear_Congruential_1GB.bin,23,Count the 1s in a Stream of Bytes,100,1953,0.62388932284831389,no,eof_zero,16
+g04_linear_congruential_1gb,bad_Linear_Congruential_1GB.bin,24,Count the 1s for Specific Bytes,10,488,0.026123887136062063,no,parse_error,16
+g04_linear_congruential_1gb,bad_Linear_Congruential_1GB.bin,25,Parking,10,5207,1,no,parse_error,23
+g04_linear_congruential_1gb,bad_Linear_Congruential_1GB.bin,26,Squeeze,2,54,0.44470651932735983,no,parse_error,11
+g04_linear_congruential_1gb,bad_Linear_Congruential_1GB.bin,27,OPERM5,5,124,0.90144631095272154,no,parse_error,13
+g04_linear_congruential_1gb,bad_Linear_Congruential_1GB.bin,28,Craps,5,92,0.41611832905271484,no,parse_error,12
+g04_linear_congruential_1gb,bad_Linear_Congruential_1GB.bin,29,DAB DCT,5,10000,1,no,uncapped,12
+g04_linear_congruential_1gb,bad_Linear_Congruential_1GB.bin,30,DAB Filtering,5,10000,1,no,uncapped,12
+g04_linear_congruential_1gb,bad_Linear_Congruential_1GB.bin,31,Linear Complexity,5,10000,1,no,uncapped,12
+g05_micali_schnorr_1gb,bad_Micali-Schnorr_1GB.bin,22,DNA,3,59,0.043744632187755261,no,parse_error,12
+g05_micali_schnorr_1gb,bad_Micali-Schnorr_1GB.bin,23,Count the 1s in a Stream of Bytes,100,1953,0.39832011461954142,no,eof_zero,16
+g05_micali_schnorr_1gb,bad_Micali-Schnorr_1GB.bin,24,Count the 1s for Specific Bytes,10,488,0.031490143993779141,no,parse_error,16
+g05_micali_schnorr_1gb,bad_Micali-Schnorr_1GB.bin,25,Parking,10,5207,1,no,parse_error,23
+g05_micali_schnorr_1gb,bad_Micali-Schnorr_1GB.bin,26,Squeeze,2,54,0.75970787064340595,no,parse_error,11
+g05_micali_schnorr_1gb,bad_Micali-Schnorr_1GB.bin,27,OPERM5,5,124,0.90144631095272154,no,parse_error,13
+g05_micali_schnorr_1gb,bad_Micali-Schnorr_1GB.bin,28,Craps,5,92,0.52885121549286551,no,parse_error,12
+g05_micali_schnorr_1gb,bad_Micali-Schnorr_1GB.bin,29,DAB DCT,5,10000,1,no,uncapped,12
+g05_micali_schnorr_1gb,bad_Micali-Schnorr_1GB.bin,30,DAB Filtering,5,10000,1,no,uncapped,12
+g05_micali_schnorr_1gb,bad_Micali-Schnorr_1GB.bin,31,Linear Complexity,5,10000,1,no,uncapped,12
+g06_modular_exponentiation_1gb,bad_Modular_Exponentiation_1GB.bin,22,DNA,3,53,4.4400000000000002e-16,yes,parse_error,12
+g06_modular_exponentiation_1gb,bad_Modular_Exponentiation_1GB.bin,23,Count the 1s in a Stream of Bytes,100,1953,7.5390774062045006e-05,no,eof_zero,16
+g06_modular_exponentiation_1gb,bad_Modular_Exponentiation_1GB.bin,24,Count the 1s for Specific Bytes,10,482,1.1100000000000001e-15,yes,parse_error,15
+g06_modular_exponentiation_1gb,bad_Modular_Exponentiation_1GB.bin,25,Parking,10,5207,1,no,parse_error,23
+g06_modular_exponentiation_1gb,bad_Modular_Exponentiation_1GB.bin,26,Squeeze,2,54,0.75970787064340595,no,parse_error,11
+g06_modular_exponentiation_1gb,bad_Modular_Exponentiation_1GB.bin,27,OPERM5,5,124,0.71590634966686495,no,parse_error,13
+g06_modular_exponentiation_1gb,bad_Modular_Exponentiation_1GB.bin,28,Craps,5,92,0.17366821692134127,no,parse_error,12
+g06_modular_exponentiation_1gb,bad_Modular_Exponentiation_1GB.bin,29,DAB DCT,5,10000,1,no,uncapped,12
+g06_modular_exponentiation_1gb,bad_Modular_Exponentiation_1GB.bin,30,DAB Filtering,5,10000,1,no,uncapped,12
+g06_modular_exponentiation_1gb,bad_Modular_Exponentiation_1GB.bin,31,Linear Complexity,5,10000,1,no,uncapped,12
+g07_quadratic_congruential_ii,bad_Quadratic_Congruential_II_1GB.bin,22,DNA,3,53,4.4400000000000002e-16,yes,parse_error,12
+g07_quadratic_congruential_ii,bad_Quadratic_Congruential_II_1GB.bin,23,Count the 1s in a Stream of Bytes,100,1953,0.045315181833661677,no,eof_zero,16
+g07_quadratic_congruential_ii,bad_Quadratic_Congruential_II_1GB.bin,24,Count the 1s for Specific Bytes,10,482,1.1100000000000001e-15,yes,parse_error,15
+g07_quadratic_congruential_ii,bad_Quadratic_Congruential_II_1GB.bin,25,Parking,10,5207,1,no,parse_error,23
+g07_quadratic_congruential_ii,bad_Quadratic_Congruential_II_1GB.bin,26,Squeeze,2,53,4.4400000000000002e-16,yes,parse_error,11
+g07_quadratic_congruential_ii,bad_Quadratic_Congruential_II_1GB.bin,27,OPERM5,5,124,0.98960470960951941,no,parse_error,13
+g07_quadratic_congruential_ii,bad_Quadratic_Congruential_II_1GB.bin,28,Craps,5,92,0.52885121549286551,no,parse_error,12
+g07_quadratic_congruential_ii,bad_Quadratic_Congruential_II_1GB.bin,29,DAB DCT,5,10000,1,no,uncapped,12
+g07_quadratic_congruential_ii,bad_Quadratic_Congruential_II_1GB.bin,30,DAB Filtering,5,10000,1,no,uncapped,12
+g07_quadratic_congruential_ii,bad_Quadratic_Congruential_II_1GB.bin,31,Linear Complexity,5,10000,1,no,uncapped,12
+g08_quadratic_congruential_i,bad_Quadratic_Congruential_I_1GB.bin,22,DNA,3,53,4.4400000000000002e-16,yes,parse_error,12
+g08_quadratic_congruential_i,bad_Quadratic_Congruential_I_1GB.bin,23,Count the 1s in a Stream of Bytes,100,1953,0.023850115116727855,no,eof_zero,16
+g08_quadratic_congruential_i,bad_Quadratic_Congruential_I_1GB.bin,24,Count the 1s for Specific Bytes,10,482,1.1100000000000001e-15,yes,parse_error,15
+g08_quadratic_congruential_i,bad_Quadratic_Congruential_I_1GB.bin,25,Parking,10,5207,1,no,parse_error,23
+g08_quadratic_congruential_i,bad_Quadratic_Congruential_I_1GB.bin,26,Squeeze,2,54,0.59848425637352709,no,parse_error,11
+g08_quadratic_congruential_i,bad_Quadratic_Congruential_I_1GB.bin,27,OPERM5,5,124,0.1467911408972804,no,parse_error,13
+g08_quadratic_congruential_i,bad_Quadratic_Congruential_I_1GB.bin,28,Craps,5,92,0.65153794031067291,no,parse_error,12
+g08_quadratic_congruential_i,bad_Quadratic_Congruential_I_1GB.bin,29,DAB DCT,5,10000,1,no,uncapped,12
+g08_quadratic_congruential_i,bad_Quadratic_Congruential_I_1GB.bin,30,DAB Filtering,5,10000,1,no,uncapped,12
+g08_quadratic_congruential_i,bad_Quadratic_Congruential_I_1GB.bin,31,Linear Complexity,5,10000,1,no,uncapped,12
+g09_xor_1gb,bad_XOR_1GB.bin,22,DNA,3,53,4.4400000000000002e-16,yes,parse_error,12
+g09_xor_1gb,bad_XOR_1GB.bin,23,Count the 1s in a Stream of Bytes,100,1953,7.77e-16,yes,eof_zero,16
+g09_xor_1gb,bad_XOR_1GB.bin,24,Count the 1s for Specific Bytes,10,482,1.1100000000000001e-15,yes,parse_error,15
+g09_xor_1gb,bad_XOR_1GB.bin,25,Parking,10,5207,1,no,parse_error,23
+g09_xor_1gb,bad_XOR_1GB.bin,26,Squeeze,2,54,4.8842456020770002e-06,no,parse_error,11
+g09_xor_1gb,bad_XOR_1GB.bin,27,OPERM5,5,120,6.6599999999999998e-16,yes,parse_error,12
+g09_xor_1gb,bad_XOR_1GB.bin,28,Craps,5,90,4.4400000000000002e-16,yes,parse_error,12
+g09_xor_1gb,bad_XOR_1GB.bin,29,DAB DCT,5,10000,1,no,uncapped,12
+g09_xor_1gb,bad_XOR_1GB.bin,30,DAB Filtering,5,10000,1,no,uncapped,12
+g09_xor_1gb,bad_XOR_1GB.bin,31,Linear Complexity,5,10000,1,no,uncapped,12

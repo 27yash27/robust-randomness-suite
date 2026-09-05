@@ -29,7 +29,10 @@ from pathlib import Path
 from robust_test_catalog import TEST_CATALOG, TestConfig
 
 
-FLOAT_RE = re.compile(r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?")
+# rtest always prints p-values with a decimal point ("%20.18Lf"), so require
+# one. A pattern that also matched bare integers used to pick the generator
+# number out of "oops, eof in generator 0" and record it as a p-value of 0.0.
+FLOAT_RE = re.compile(r"[-+]?(?:\d+\.\d*|\.\d+)(?:[eE][-+]?\d+)?")
 FLOAT_LINE_RE = re.compile(
     r"^\s*[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?(?:\s+[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?)*\s*$"
 )

@@ -217,6 +217,24 @@ selected after the fact.
 This demonstrates the workflow. It is not the nine-generator validation
 campaign, and it does not estimate a false-positive rate.
 
+## 9. Every test, on inputs you can rebuild
+
+The same idea across all twenty added tests:
+
+```bash
+python3 scripts/run_all_experiments.py --repo . --out ../experiments --size-mb 300
+```
+
+Runs tests 22 to 41 at the sample sizes fixed in
+`scripts/robust_test_catalog.py`, against one input that should look random and
+one that should not, and writes an SVG per test and fixture plus a `results.csv`
+recording the command, revision, backend, raw p-value and numeric status of
+every run. Add `--ksexact` for the exact KS routine, `--tests` to narrow it
+down, and raise `--size-mb` if a heavy test reports running out of data.
+
+See `reproducibility/` for how to rebuild the nine research generators, the
+input hashes, and the preserved campaign results.
+
 ---
 
 ## What is in here
@@ -228,6 +246,7 @@ robust/          the driver and all 41 tests
   rtest*.sh        batteries for files of 1 MB to 10 GB
   doc/             tests-description.tex (tests 0-21), expansion-notes.txt (22-41)
 kolmogorov-smirnov/  the KS engine
+reproducibility/ generator recipes, input hashes, preserved campaign results
 data/            a small etalon, data.e
 scripts/         compare_curves.py, run_maximal_p_sweep.py and friends
 ent16/ general/ independent/ pipes/ readfile/ spectral_tests/ wav/
@@ -271,11 +290,13 @@ Checked against the nine NIST reference generators. The three good ones
 (Blum-Blum-Shub, Linear Congruential, Micali-Schnorr) gave no false positives.
 All six defective ones were detected, with best-in-sweep p-values below 1e-10.
 Results agreed with and without the XOR step. The generator files run to tens of
-GB and are not included, and neither are their generation recipes or a
-committed results table, so these numbers cannot be reproduced from this
-repository alone. `scripts/run_maximal_p_sweep.py` reruns the sweep for the
-twenty expansion tests (22-41) against generator files you supply; the
-`rtest*.sh` batteries cover tests 0, 1 and 3-16.
+GB and are not in this repository, but their recipes, hashes and the original
+results are: see `reproducibility/`. That directory has the modified NIST STS
+sources and the guide needed to rebuild the nine generators, a manifest with the
+SHA-256 of each input, and the campaign output with a note on how it was
+produced and what has and has not been checked. `scripts/run_maximal_p_sweep.py`
+reruns the sweep against generator files you supply; the `rtest*.sh` batteries
+cover tests 0, 1 and 3-16.
 
 ## Credits
 

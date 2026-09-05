@@ -36,3 +36,6 @@ __pycache__/
 
 # Output of scripts/reproduce_randomness_demo.py, if run inside the checkout
 randomness-demo/
+
+# Output of scripts/run_all_experiments.py, if run inside the checkout
+experiments/

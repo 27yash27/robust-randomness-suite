@@ -1,0 +1,206 @@
+{
+  "campaign": "maxp_full_20260502",
+  "generator_dir": "/Users/yashbelani/Library/CloudStorage/Dropbox/0-Shen Research/0-Yash_New_Mac_Shen-Project/My-RNGs-Tests/NIST_Bad_Generators_20260409_0810",
+  "generator_glob": "*.bin",
+  "etalon": "/Users/yashbelani/Library/CloudStorage/Dropbox/test_data/etal.bin",
+  "rtest": "/Users/yashbelani/Library/CloudStorage/Dropbox/0-Shen Research/0-Yash_New_Mac_Shen-Project/rtest-main/robust/rtest",
+  "xor": true,
+  "max_p_cap": 10000,
+  "threshold": 1e-10,
+  "charts_enabled": true,
+  "tests": [
+    {
+      "test_num": 22,
+      "title": "DNA",
+      "dimension": 31,
+      "n_value": 2097161,
+      "modifier": null,
+      "p_values": [
+        3,
+        4,
+        5
+      ],
+      "parse_kind": "vector_anyfloat",
+      "chart_coords": [
+        0,
+        30
+      ],
+      "start_p": 3
+    },
+    {
+      "test_num": 23,
+      "title": "Count the 1s in a Stream of Bytes",
+      "dimension": 1,
+      "n_value": 0,
+      "modifier": null,
+      "p_values": [
+        100,
+        150,
+        200,
+        250,
+        300
+      ],
+      "parse_kind": "single_anyfloat",
+      "chart_coords": [
+        0
+      ],
+      "start_p": 100
+    },
+    {
+      "test_num": 24,
+      "title": "Count the 1s for Specific Bytes",
+      "dimension": 4,
+      "n_value": 0,
+      "modifier": null,
+      "p_values": [
+        10,
+        20,
+        30,
+        40,
+        50
+      ],
+      "parse_kind": "vector_lastline",
+      "chart_coords": [
+        0,
+        3
+      ],
+      "start_p": 10
+    },
+    {
+      "test_num": 25,
+      "title": "Parking",
+      "dimension": 1,
+      "n_value": 24000,
+      "modifier": null,
+      "p_values": [
+        10,
+        20,
+        30,
+        40,
+        50
+      ],
+      "parse_kind": "single_lastline",
+      "chart_coords": [
+        0
+      ],
+      "start_p": 10
+    },
+    {
+      "test_num": 26,
+      "title": "Squeeze",
+      "dimension": 1,
+      "n_value": 0,
+      "modifier": null,
+      "p_values": [
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "parse_kind": "single_lastline",
+      "chart_coords": [
+        0
+      ],
+      "start_p": 2
+    },
+    {
+      "test_num": 27,
+      "title": "OPERM5",
+      "dimension": 1,
+      "n_value": 1000000,
+      "modifier": null,
+      "p_values": [
+        5,
+        10,
+        15,
+        20,
+        24
+      ],
+      "parse_kind": "single_lastline",
+      "chart_coords": [
+        0
+      ],
+      "start_p": 5
+    },
+    {
+      "test_num": 28,
+      "title": "Craps",
+      "dimension": 2,
+      "n_value": 0,
+      "modifier": null,
+      "p_values": [
+        5,
+        10,
+        15
+      ],
+      "parse_kind": "vector_lastline",
+      "chart_coords": [
+        0,
+        1
+      ],
+      "start_p": 5
+    },
+    {
+      "test_num": 29,
+      "title": "DAB DCT",
+      "dimension": 1,
+      "n_value": 4096,
+      "modifier": null,
+      "p_values": [
+        5,
+        10,
+        20,
+        30,
+        40,
+        50
+      ],
+      "parse_kind": "single_lastline",
+      "chart_coords": [
+        0
+      ],
+      "start_p": 5
+    },
+    {
+      "test_num": 30,
+      "title": "DAB Filtering",
+      "dimension": 1,
+      "n_value": 4096,
+      "modifier": null,
+      "p_values": [
+        5,
+        10,
+        20,
+        30,
+        40,
+        50
+      ],
+      "parse_kind": "single_lastline",
+      "chart_coords": [
+        0
+      ],
+      "start_p": 5
+    },
+    {
+      "test_num": 31,
+      "title": "Linear Complexity",
+      "dimension": 1,
+      "n_value": 4096,
+      "modifier": 500,
+      "p_values": [
+        5,
+        10,
+        20,
+        30,
+        40,
+        50
+      ],
+      "parse_kind": "single_lastline",
+      "chart_coords": [
+        0
+      ],
+      "start_p": 5
+    }
+  ],
+  "elapsed_s": 145111.2
+}
