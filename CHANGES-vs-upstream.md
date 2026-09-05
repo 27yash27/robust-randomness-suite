@@ -1,5 +1,9 @@
 # Changes vs. upstream `rtest`
 
+Upstream baseline: [`alexander-shen/rtest`](https://github.com/alexander-shen/rtest)
+at commit `6ae81dcec44d5cbe46c7bc58620c275a7cfa3c1d`. Comparisons below are
+against that revision, so they stay checkable as upstream moves.
+
 This suite is Alexander Shen's [`rtest`](https://github.com/alexander-shen/rtest)
 plus an expansion of **20 new test statistics (numbers 22–41)**. Everything else
 is upstream and byte-for-byte unmodified — so this file is the complete list of
@@ -46,17 +50,39 @@ what is new or changed, to make review against upstream straightforward.
 - `robust/rtest_expansion.sh` — battery runner for tests 22–41 (the upstream
   `rtest1m.sh … rtest10g.sh` cover the original tests only).
 - `robust/check.sh` — smoke test for a fresh build, run as `make check`.
+- `robust/test_nonperiodic_boundary.c` — boundary regression for test 36,
+  built by `make test-nonperiodic-boundary` and run as part of `make check`.
 - `robust/doc/expansion-notes.txt` — documentation of the expansion.
 - `README.md` — this suite's README. Shen's original is kept as `README-upstream.md`.
 - `CHANGES-vs-upstream.md` — this file.
+
+## Fixed in this expansion
+
+- **`robust/test_nonperiodic.c` (test 36) miscounted the first eight candidate
+  positions of every block.** The per-template "bits since last match" counter
+  was only advanced after the 9-bit window had filled, so a template sitting at
+  offsets 0 to 7 of a block was never counted; the first eligible position was
+  offset 8. Fixed by advancing the counter for every consumed bit.
+  `test_nonperiodic_boundary.c` locks the behaviour in by running the statistic
+  at every offset in a block and requiring the same count each time.
+
+  Worth noting for the record: this could not be seen from the suite's
+  p-values. The same code produces both compared samples, so the undercount
+  cancels and the p-values are bit-identical before and after the fix. The
+  error cost sensitivity, not validity, which is the property the robust
+  construction is supposed to provide. It has to be tested against the
+  statistic directly, which is what the new regression does.
 
 ## Issues found in upstream files (reported, not changed)
 
 These were found while testing the expansion. They are in Shen's original files,
 so they are left alone here and listed for him to decide on.
 
-1. **`kolmogorov-smirnov/ksmirnov.c` — `psmirnov2x` underflows above ~2500
-   samples.** The recursion returns 0, so `rtest` reports a p-value of exactly
+1. **`kolmogorov-smirnov/ksmirnov.c` — `psmirnov2x` underflows at large
+   sample sizes, and where it starts depends on the platform.** Measured on
+   Apple Silicon, where `long double` is 8 bytes; on x86-64, where it is 16
+   bytes with a wider exponent, the onset is later and agreement with the
+   exact routine has been reported at 3000 and beyond. The recursion returns 0, so `rtest` reports a p-value of exactly
    1.0 regardless of the data. Checked directly: at a fixed deviation of
    `1/sqrt(n)` it gives 0.702 at n=100 and 0.692 at n=2000, then exactly
    1.0 from n=3000 upward. The exact GMP routine (`-k`, `ks2mp.c`) returns
@@ -69,11 +95,20 @@ so they are left alone here and listed for him to decide on.
    and near half that on Linux, where `long double` is 16 bytes.
    `ulimit -s unlimited` avoids it.
 
-3. **`kolmogorov-smirnov/ks2.c` has a leftover debug `printf` in `ks2bar`.**
+3. **Very small p-values are lost on the way out.** `rtest.c` prints 18
+   decimal places, so any tail below 1e-18 is shown as `0.000000000000000000`.
+   The default routine can also return a small negative value by cancellation
+   where the true tail is positive. The exact GMP routine in `ks2mp.c` divides
+   numerator and denominator down until the denominator fits under 2^128, which
+   can truncate a small nonzero numerator to zero. All three limit how small a
+   reported p-value can be; the scripts here now flag such points rather than
+   treating them as failures.
+
+4. **`kolmogorov-smirnov/ks2.c` has a leftover debug `printf` in `ks2bar`.**
    Harmless in practice: the Makefile links `ks2mp.c` instead, so this file is
    not compiled into `rtest`.
 
-4. **`robust/Makefile` builds with `-fsanitize=address`** and hardcodes
+5. **`robust/Makefile` builds with `-fsanitize=address`** and hardcodes
    `/usr/local` include and library paths.
 
 ## Not modified

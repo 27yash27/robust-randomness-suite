@@ -8,9 +8,17 @@
 #   1. the generator layer still matches the committed golden output
 #   2. a good generator passes            (data.e.32, the binary digits of e)
 #   3. a bad generator is detected        (data.e, the same digits as ASCII text)
+#   4. test 36 counts a template wherever it sits in a block
 #
-# Check 2 also catches the KS underflow bug described in CHANGES-vs-upstream.md:
-# a p-value of exactly 1.0 fails here rather than reading as a clean pass.
+# Check 2 is a coarse guard, not a proof: at 20 samples a p-value at or above
+# 0.9999 is far more likely to be the KS underflow described in
+# CHANGES-vs-upstream.md than a real result. At very small sample sizes a
+# p-value of exactly 1 can be perfectly legitimate, which is why this check
+# uses 20 samples rather than 1 or 2.
+#
+# Check 4 has to call the statistic directly. Under the robust construction
+# both compared samples come from the same code, so a counting error cancels
+# in the p-value and cannot be seen from the suite's output.
 
 cd "$(dirname "$0")" || exit 1
 
@@ -77,6 +85,19 @@ case "$verdict" in
           fails=$((fails + 1)) ;;
   *)      echo "   FAIL: no p-value returned."; fails=$((fails + 1)) ;;
 esac
+
+echo "4. test 36 counts a template at every offset in a block"
+if [ -x ./test-nonperiodic-boundary ]; then
+  if ./test-nonperiodic-boundary > /dev/null 2>&1; then
+    echo "   ok"
+  else
+    echo "   FAIL: the count depends on where the template sits in the block."
+    echo "         Run ./test-nonperiodic-boundary for the offsets that differ."
+    fails=$((fails + 1))
+  fi
+else
+  echo "   skipped (run 'make test-nonperiodic-boundary' to enable)"
+fi
 
 echo
 if [ "$fails" -eq 0 ]; then

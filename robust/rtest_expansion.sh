@@ -31,17 +31,50 @@ if [ ! -x "$RTEST" ]; then
 fi
 
 GEN="$1"; ETAL="$2"; OUT="$1.expansion"
-: > "$OUT"
 
+for f in "$GEN" "$ETAL"; do
+  if [ ! -r "$f" ]; then
+    echo "cannot read input file: $f" >&2
+    exit 1
+  fi
+done
+
+: > "$OUT"
+failed=0
+ran=0
+
+# Runs one test and records whether it actually produced a p-value. rtest
+# exits 0 even when it runs out of data, announcing "oops" on stdout, so the
+# exit status alone cannot be trusted here.
 run() {  # label  test  dim  n  p  [modifier]
+  ran=$((ran + 1))
+  tmp="$OUT.tmp"
   echo "" >> "$OUT"
   echo "== t$2  $1 ==" >> "$OUT"
   if [ -n "$6" ]; then
     echo "$RTEST -x -f $GEN -e $ETAL -p $5 -q $5 -d $3 -n $4 -t $2 -m $6 -r 1" >> "$OUT"
-    "$RTEST" -x -f "$GEN" -e "$ETAL" -p "$5" -q "$5" -d "$3" -n "$4" -t "$2" -m "$6" -r 1 >> "$OUT" 2>&1
+    "$RTEST" -x -f "$GEN" -e "$ETAL" -p "$5" -q "$5" -d "$3" -n "$4" -t "$2" -m "$6" -r 1 > "$tmp" 2>&1
   else
     echo "$RTEST -x -f $GEN -e $ETAL -p $5 -q $5 -d $3 -n $4 -t $2 -r 1" >> "$OUT"
-    "$RTEST" -x -f "$GEN" -e "$ETAL" -p "$5" -q "$5" -d "$3" -n "$4" -t "$2" -r 1 >> "$OUT" 2>&1
+    "$RTEST" -x -f "$GEN" -e "$ETAL" -p "$5" -q "$5" -d "$3" -n "$4" -t "$2" -r 1 > "$tmp" 2>&1
+  fi
+  status=$?
+  cat "$tmp" >> "$OUT"
+
+  reason=""
+  if [ $status -ne 0 ]; then
+    reason="rtest exited $status"
+  elif grep -q "oops" "$tmp"; then
+    reason="ran out of data"
+  elif ! grep -qE "^ *-?[0-9]+\.[0-9]+" "$tmp"; then
+    reason="no p-value produced"
+  fi
+  rm -f "$tmp"
+
+  if [ -n "$reason" ]; then
+    echo "   -> FAILED ($reason)" >> "$OUT"
+    echo "t$2 $1: $reason" >&2
+    failed=$((failed + 1))
   fi
 }
 
@@ -68,4 +101,9 @@ run "Approximate Entropy"              40  1     100000   5
 run "Maurer's Universal"               41  1     100000   5
 
 echo "" >> "$OUT"
-echo "done -> $OUT"
+if [ "$failed" -ne 0 ]; then
+  echo "$failed of $ran tests did not complete -- see $OUT" >&2
+  echo "$failed of $ran tests did not complete" >> "$OUT"
+  exit 1
+fi
+echo "all $ran tests completed -> $OUT"

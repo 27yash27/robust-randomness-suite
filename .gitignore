@@ -1,6 +1,7 @@
 # Compiled binaries and objects
 rtest
 test-generators
+test-nonperiodic-boundary
 a.out
 *.o
 *.a

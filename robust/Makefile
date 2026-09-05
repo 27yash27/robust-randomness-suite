@@ -43,7 +43,11 @@ test-generators-run: test-generators;\
    ./test-generators > tmp.out; diff test-generators.out tmp.out;\
    echo "No diff output means OK"
 
-check: rtest test-generators; \
+test-nonperiodic-boundary: test_nonperiodic_boundary.c test_nonperiodic.c generators.c; \
+   $(CC) -o test-nonperiodic-boundary test_nonperiodic_boundary.c test_nonperiodic.c \
+   generators.c ../general/general.c $(FLAGS)
+
+check: rtest test-generators test-nonperiodic-boundary; \
    ./check.sh
    
 clean: ; \

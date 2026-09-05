@@ -162,6 +162,11 @@ def run_one(rtest: Path, tested: Path, etalon: Path, cwd: Path, rel_out_dir: Pat
     if result.returncode != 0:
         record["status"] = "rtest_failed"
         return record
+    # rtest exits 0 after running out of data, announcing it on stdout instead.
+    # That is the only genuine capacity failure; a p-value of zero is not one.
+    if "oops" in result.stdout or "oops" in result.stderr:
+        record["status"] = "eof"
+        return record
     try:
         values = parse_values(cfg, result.stdout)
     except ValueError as exc:
@@ -170,12 +175,25 @@ def run_one(rtest: Path, tested: Path, etalon: Path, cwd: Path, rel_out_dir: Pat
         return record
     record["values"] = values
     record["objective"] = min(values)
-    record["status"] = "ok" if record["objective"] > 0.0 else "eof_zero"
+    # A zero or negative objective is not exhausted input. rtest prints 18
+    # decimal places, so any p-value below 1e-18 comes out as 0.000...0, and
+    # the default KS kernel can return a small negative value by cancellation.
+    # Both mean "smaller than we can print", i.e. the strongest detection in
+    # the sweep, so they are kept and flagged rather than thrown away. Rerun
+    # such a point with -k for an exact value.
+    if record["objective"] <= 0.0:
+        record["status"] = "censored_zero"
+        record["note"] = ("p-value below the printable resolution of 1e-18; "
+                          "treated as a detection, rerun with -k for an exact value")
+    else:
+        record["status"] = "ok"
     return record
 
 
 def is_good(record: dict) -> bool:
-    return record.get("status") == "ok"
+    # censored_zero is a completed run with a very small p-value, so the sweep
+    # must keep searching upward from it rather than treating it as a ceiling.
+    return record.get("status") in ("ok", "censored_zero")
 
 
 def find_maximal_p(start_p: int, max_p: int, run_fn) -> tuple[int | None, dict | None, list[dict]]:

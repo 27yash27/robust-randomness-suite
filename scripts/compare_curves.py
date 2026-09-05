@@ -88,7 +88,10 @@ def run_one(rtest, cfg, gen, etal, size, coord, use_xor, workdir):
         raise RuntimeError(
             f"ran out of data at -p {size}: both files need to be larger.")
 
-    numbers = re.findall(r"[01]\.\d+", proc.stdout)
+    # Match an optional sign and an optional exponent. A bare [01]\.\d+ pattern
+    # silently drops the leading minus of the default kernel's occasional -0.0,
+    # turning a very small p-value into a plausible-looking one.
+    numbers = re.findall(r"-?\d+\.\d+(?:[eE][-+]?\d+)?", proc.stdout)
     pval = float(numbers[coord]) if coord < len(numbers) else float("nan")
 
     suffix = f".{coord:04d}"
@@ -136,9 +139,13 @@ def build_svg(title, subtitle, panels):
                    f'font-family="Helvetica,Arial,sans-serif" font-size="13" '
                    f'fill="#111">p = q = {size}</text>')
         colour = "#b00020" if pval == pval and pval < 0.01 else "#333"
+        if pval == pval and pval <= 0.0:
+            label = "KS p-value &lt; 1e-18"
+        else:
+            label = f"KS p-value {pval:.4g}"
         out.append(f'<text x="{px + 26}" y="{py + 32}" '
                    f'font-family="Menlo,monospace" font-size="12" '
-                   f'fill="{colour}">KS p-value {pval:.4g}</text>')
+                   f'fill="{colour}">{label}</text>')
         out.append(f'<line x1="{x0}" y1="{y0}" x2="{x0 + PANEL_W - 52}" '
                    f'y2="{y0}" stroke="#999" stroke-width="1"/>')
         out.append(f'<line x1="{x0}" y1="{y0}" x2="{x0}" '
@@ -196,7 +203,17 @@ def main():
             except RuntimeError as exc:
                 print(f" skipped ({exc})")
                 continue
-            print(f" p-value {pval:.4g}")
+            if pval != pval:
+                print(" no p-value parsed, skipped")
+                continue
+            if pval <= 0.0:
+                print(f" p-value {pval:.4g} (below printable resolution; "
+                      f"rerun with -k for an exact value)")
+            elif pval >= 1.0:
+                print(f" p-value {pval:.4g} (exactly 1; legitimate at tiny "
+                      f"sample sizes, otherwise suspect KS underflow)")
+            else:
+                print(f" p-value {pval:.4g}")
             panels.append((size, pval, tested, etalon))
     finally:
         shutil.rmtree(workdir, ignore_errors=True)

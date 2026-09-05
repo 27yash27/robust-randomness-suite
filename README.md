@@ -8,7 +8,9 @@ not bounded, so a small value might mean a bad generator or just a bad
 approximation. This suite compares your generator against itself XOR-ed with a
 fixed file instead. If the generator is random, both sides are random, so the
 two samples must match. Comparing them with a Kolmogorov-Smirnov test gives a
-p-value that assumes nothing.
+p-value that needs no assumption about the distribution of the statistic, which
+is the assumption ordinary tests get wrong. It still relies on the samples being
+independent and on the arithmetic being sound, so read the limits below.
 
 41 tests, covering Diehard and most of NIST STS. Built on Alexander Shen's
 [`rtest`](https://github.com/alexander-shen/rtest), extended from 21 tests to 41.
@@ -97,8 +99,13 @@ them from there, so you never have to type them by hand.
 
 ```bash
 ./rtest_expansion.sh yourgen.bin etalon.bin     # tests 22-41
-./rtest100m.sh yourgen.bin etalon.bin           # tests 0-16, sized for 100 MB files
+./rtest100m.sh yourgen.bin etalon.bin           # tests 0, 1 and 3-16
 ```
+
+`rtest_expansion.sh` exits non-zero if any test fails to produce a p-value.
+The upstream batteries cover tests 0, 1 and 3 to 16 only. Test 2 is a
+debugging function, and **tests 17 to 21 have no battery**, so run those by
+hand with `rtest` if you need them.
 
 Results land in `yourgen.bin.expansion` and `yourgen.bin.test100m`. Use
 `rtest1m.sh`, `rtest10m.sh`, `rtest100m.sh`, `rtest1g.sh` or `rtest10g.sh` to
@@ -121,13 +128,30 @@ why.
 
 Two things that will bite you:
 
-- **Keep `-p` and `-q` at 2000 or below, or pass `-k`.** The default p-value
-  routine underflows above roughly 2500 samples and returns exactly 1.0 no
-  matter what your data looks like. `-k` computes the value exactly and stays
-  correct, but is slower.
+- **The safe sample size depends on your platform.** The default p-value
+  routine works in `long double`, which is 8 bytes on Apple Silicon and 16
+  bytes with a wider exponent on x86-64. On Apple Silicon it underflows above
+  roughly 2500 samples and returns exactly 1.0 whatever the data says; on
+  x86-64 Linux it has been observed to agree with the exact routine at 3000
+  and beyond. Measure it on your own machine with `make check` and a few
+  spot comparisons against `-k`, or simply pass `-k`, which is exact
+  everywhere and slower.
+- **A p-value of exactly 1.0 is not automatically a bug.** At very small
+  sample sizes the discrete KS distribution genuinely reaches 1. Above a few
+  dozen samples, treat it as the underflow above until you have checked with
+  `-k`.
+- **Very small p-values are printed as zero.** The driver prints 18 decimal
+  places, so anything below 1e-18 comes out as `0.000000000000000000`, and the
+  default routine can print a small negative value instead through
+  cancellation. Both mean "smaller than can be shown here", not "no result".
+  Rerun that point with `-k` if you need the value.
 - **A single p-value is not the answer.** The p-value is not monotone in the
   sample size, so a real signal can appear at one size and vanish at another.
-  Run several sizes and take the smallest value you see.
+  Run several sizes and take the smallest value you see. That minimum is a
+  search summary over many sample sizes and coordinates, not a calibrated
+  p-value: it is biased low by the search itself. Fix the family of tests,
+  coordinates and sizes in advance and correct for multiplicity, or report the
+  minimum as exploratory and judge it against a small fixed threshold.
 
 ## 6. Sweep the sample size
 
@@ -212,10 +236,11 @@ Checked against the nine NIST reference generators. The three good ones
 (Blum-Blum-Shub, Linear Congruential, Micali-Schnorr) gave no false positives.
 All six defective ones were detected, with best-in-sweep p-values below 1e-10.
 Results agreed with and without the XOR step. The generator files run to tens of
-GB and are not included. `scripts/run_maximal_p_sweep.py` reproduces the
-campaign for the twenty expansion tests (22-41) from a directory of generator
-files you supply; the original tests 0-21 are driven by the `rtest*.sh`
-batteries instead, since the Python catalog only covers 22-41.
+GB and are not included, and neither are their generation recipes or a
+committed results table, so these numbers cannot be reproduced from this
+repository alone. `scripts/run_maximal_p_sweep.py` reruns the sweep for the
+twenty expansion tests (22-41) against generator files you supply; the
+`rtest*.sh` batteries cover tests 0, 1 and 3-16.
 
 ## Credits
 

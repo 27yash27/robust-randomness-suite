@@ -115,17 +115,22 @@ bool nonperiodic(long double *value, unsigned long *hash, PRG gen, int *param,
       if (bits_in_window < NONP_TEMPLATE_LEN) {
         bits_in_window++;
       }
-      /* Once the window is fully populated, every template that has also
-       * accumulated >= NONP_TEMPLATE_LEN fresh bits since its last match is
-       * eligible for matching. The two checks differ early in a block and
+      /* Freshness counts every bit consumed, including the bits that fill
+       * the initial window. Incrementing only after the window is full would
+       * leave bits_since[] NONP_TEMPLATE_LEN-1 short, making the first
+       * NONP_TEMPLATE_LEN-1 candidate positions of every block ineligible. */
+      for (int t = 0; t < NONP_NUM_TEMPLATES; t++) {
+        if (bits_since[t] < NONP_TEMPLATE_LEN) {
+          bits_since[t]++;
+        }
+      }
+      /* A match needs a fully populated window as well as enough fresh bits
+       * for this template. The two conditions differ early in a block and
        * after any match, so we can't collapse them. */
       if (bits_in_window < NONP_TEMPLATE_LEN) {
         continue;
       }
       for (int t = 0; t < NONP_NUM_TEMPLATES; t++) {
-        if (bits_since[t] < NONP_TEMPLATE_LEN) {
-          bits_since[t]++;
-        }
         if (bits_since[t] >= NONP_TEMPLATE_LEN &&
             window == (unsigned int)nonp_templates[t]) {
           W[t]++;
