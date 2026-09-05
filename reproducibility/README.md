@@ -106,14 +106,34 @@ shasum -a 256 bad_generator_output.bin
 
 Substitute the generator number 1 to 9 as listed in the guide.
 
-## The inputs
+## The inputs, and what you can and cannot reproduce
 
 `input-manifest.csv` lists the nine generator files with their size and SHA-256.
-They are 1 GB each and are not in this repository.
+They are 1 GB each and are not in this repository; rebuild them with the recipe
+above.
 
-The etalon was a 40 GB file. Its content does not affect validity, only its
-size: XOR mode reads it as fast as it reads the generator. Any fixed file at
-least as large as your generator will do.
+**Two inputs cannot be reproduced from anything published here, so the
+historical p-values cannot be reproduced either.**
+
+- **The etalon was a 40 GB file** that is not published and is too large to
+  publish. Its SHA-256 is recorded so it can be identified if it is ever made
+  available, but nobody else can currently recreate it. Any fixed file of
+  sufficient size gives statistically valid results, because validity does not
+  depend on the etalon's quality; it will not give the *same numbers*.
+- **The SHA-1 generator input** predates the OpenSSL fix, as described above.
+
+Treat `campaign-2026-05-02/` as **archived evidence**: a record of what was run
+and what it produced, not a target you can hit again. To generate results that
+someone else can check number for number, run a new campaign with an etalon
+built from a published recipe, for example
+
+```bash
+python3 -c "from hashlib import shake_256; from pathlib import Path; \
+Path('etalon.bin').write_bytes(shake_256(b'my etalon v1').digest(1_000_000_000))"
+```
+
+and record its hash alongside the results. `scripts/run_all_experiments.py`
+already works this way, which is why its outputs are reproducible by anyone.
 
 ## The campaign
 

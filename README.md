@@ -291,7 +291,11 @@ Checked against the nine NIST reference generators. The three good ones
 All six defective ones were detected, with best-in-sweep p-values below 1e-10.
 Results agreed with and without the XOR step. The generator files run to tens of
 GB and are not in this repository, but their recipes, hashes and the original
-results are: see `reproducibility/`. That directory has the modified NIST STS
+results are: see `reproducibility/`. **That campaign covers tests 22 to 31
+only**, on nine generators; tests 32 to 41 have no campaign of their own. Two of
+its inputs, the 40 GB etalon and the pre-fix SHA-1 generator, cannot be
+recreated from anything published, so its exact p-values cannot be reproduced;
+it is archived evidence rather than a reproduction target. That directory has the modified NIST STS
 sources and the guide needed to rebuild the nine generators, a manifest with the
 SHA-256 of each input, and the campaign output with a note on how it was
 produced and what has and has not been checked. `scripts/run_maximal_p_sweep.py`

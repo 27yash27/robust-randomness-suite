@@ -96,6 +96,36 @@ def build_inputs(inputs_dir, size_bytes):
     return rows, ref
 
 
+# Refusals a statistic is documented to make, matched against its own -v output.
+# Random Excursions and its variant abort when the stream yields too few
+# excursion cycles, which NIST specifies.
+KNOWN_DECLINES = (
+    ("too few cycles", "statistic_declined_too_few_cycles"),
+)
+
+
+def explain_empty_output(cmd, cwd):
+    """Re-run with -v and name the refusal, or report it as unexplained."""
+    # Drop -o and its value: rtest creates that directory and refuses to run if
+    # it already exists, which the first pass has just made it do.
+    verbose, skip = [], False
+    for arg in cmd:
+        if skip:
+            skip = False
+            continue
+        if arg == "-o":
+            skip = True
+            continue
+        verbose.append(arg)
+    verbose.insert(1, "-v")
+    r = subprocess.run(verbose, cwd=cwd, capture_output=True, text=True)
+    blob = r.stdout + r.stderr
+    for needle, status in KNOWN_DECLINES:
+        if needle in blob:
+            return status, blob
+    return "no_output_unexplained", blob
+
+
 def classify(result, dimension):
     """Return (status, p_value_or_None, raw_string)."""
     if result.returncode != 0:
@@ -104,12 +134,10 @@ def classify(result, dimension):
         return ("ran_out_of_data", None, "")
     found = FLOAT_RE.findall(result.stdout)
     if not found:
-        # rtest exits 0 and prints nothing when the statistic itself declines to
-        # produce a value. Random Excursions (32) and its variant (33) do this
-        # when the bit stream yields too few excursion cycles, which NIST
-        # specifies; a perfectly balanced input such as "01" repeated never
-        # produces enough. That is the test reporting a limit, not an error.
-        return ("statistic_declined", None, "")
+        # Empty output is not self-explaining, so it is not accepted as a
+        # decline on its own. The caller re-runs with -v and only a recognised
+        # refusal is treated as one; anything else fails visibly.
+        return ("no_output", None, "")
     if len(found) < dimension:
         return ("parse_error", None, "")
     raw = found[0]
@@ -207,6 +235,12 @@ def main():
                     stdout_rel = Path("logs") / f"{tag}.txt"
                     (out / stdout_rel).write_text(r.stdout + r.stderr)
                     status, value, raw = classify(r, cfg.dimension)
+                    if status == "no_output":
+                        status, explain = explain_empty_output(cmd, out)
+                        (out / stdout_rel).write_text(
+                            r.stdout + r.stderr
+                            + "\n--- re-run with -v to explain empty output ---\n"
+                            + explain)
                     all_statuses.append(status)
                     w.writerow({
                         "test_num": tnum, "title": cfg.title, "fixture": fixture,
@@ -250,15 +284,17 @@ def main():
     print(f"\noutputs: {out}")
     # Real problems, as opposed to a statistic declining or wanting more data.
     hard = [r for r in all_statuses
-            if r in ("process_failure", "parse_error", "numerical_failure")]
+            if r in ("process_failure", "parse_error", "numerical_failure",
+                     "no_output_unexplained")]
     if incomplete:
         print(f"\n{len(incomplete)} test/fixture pairs produced no curves:")
         for tnum, fixture in incomplete:
             print(f"   test {tnum} / {fixture}")
-        print("Check numeric_status in results.csv. 'statistic_declined' means the "
-              "test reported it cannot compute on that input, which is expected for "
-              "Random Excursions on a perfectly balanced stream. "
-              "'ran_out_of_data' means you should raise --size-mb.")
+        print("Check numeric_status in results.csv. "
+              "'statistic_declined_too_few_cycles' is the test saying so itself, "
+              "confirmed from its own -v output, and is expected for Random "
+              "Excursions on a perfectly balanced stream. 'ran_out_of_data' means "
+              "raise --size-mb. 'no_output_unexplained' is a real failure.")
     if hard:
         print(f"\n{len(hard)} runs failed for reasons that need looking at.")
         return 1

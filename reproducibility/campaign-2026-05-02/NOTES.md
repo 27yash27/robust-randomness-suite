@@ -51,10 +51,13 @@ This matters because a genuine p-value below the printing floor would also read
 as 0.0, and would have been discarded the same way. So the ceilings were
 checked directly rather than assumed:
 
-- 11 rows have `eof_zero` at the ceiling. All are test 23, all stop at the same
-  `max_p` of 1953, across every generator, which is a property of the file size
-  and the test's consumption rate rather than of any generator.
-- The boundary was rerun on the original inputs with the current code:
+The 11 `eof_zero` rows are **not** one kind of event. They split two ways, and
+the two have opposite explanations.
+
+**Nine rows, test 23, all stopping at `max_p` 1953.** The same ceiling for every
+generator is a property of the file size and the test's consumption rate, not of
+any generator. The boundary was rerun on the original inputs with the current
+code:
 
       rtest -x -f bad_Blum-Blum-Shub_1GB.bin -e etal.bin -p 1953 -q 1953 -d 1 -n 0 -t 23 -r 1
       -> 0.261534995558913019          (matches the recorded 0.261534995558913)
@@ -62,8 +65,30 @@ checked directly rather than assumed:
       rtest -x -f bad_Blum-Blum-Shub_1GB.bin -e etal.bin -p 1954 -q 1954 -d 1 -n 0 -t 23 -r 1
       -> oops, eof in generator 0
 
-  So the ceiling is genuine input exhaustion, and the recorded value at the
-  last good sample size reproduces exactly on today's code.
+  So for test 23 the ceiling is genuine input exhaustion, and the recorded value
+  at the last good sample size reproduces exactly on today's code.
+
+**Two rows, test 26 (Squeeze), stopping at `max_p` 30**, for Cubic Congruential
+and G-using-SHA-1. These are the opposite case: not exhaustion at all. Rerunning
+the boundary shows the run completing normally, with no end-of-input message:
+
+| p | default routine | exact routine (`-k`) |
+|---|---|---|
+| 30 | 0.000000000000000222 | 0.000000000000000017 |
+| 31 | 0.000000000000000000 | 0.000000000000000004 |
+| 32 | 0.000000000000000000 | 0.000000000000000001 |
+
+The objective was falling monotonically (3.3e-09, 6.2e-14, 4.44e-16, 2.22e-16)
+and simply went below what `1 - psmirnov2x(...)` can represent in double
+precision; 2.22e-16 is machine epsilon. The old classifier read that zero as
+exhausted input and stopped.
+
+**So those two rows understate both the ceiling and the detection.** The sweep
+could have continued past 30, and the exact routine still returns real
+decreasing p-values there. This is the failure mode the current code was
+changed to avoid: it now reads end of input from `rtest`'s own message and keeps
+a sub-floor value as `censored_zero` instead of discarding it. Corrected figures
+for test 26 are in `../t26-recheck-2026-09-05/`.
 
 The current tooling fixes both halves of this: it reads end of input from
 `rtest`'s own message before parsing, keeps a p-value below the printing floor
