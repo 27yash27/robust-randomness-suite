@@ -40,7 +40,8 @@ cd robust
 make
 ```
 
-You now have the `rtest` binary.
+You now have the `rtest` binary. Steps 3 to 7 below all run from this
+`robust/` directory; step 8 runs from the repository root and says so.
 
 - **On Apple Silicon**, run this first, because the Makefile looks in
   `/usr/local` and Homebrew installs to `/opt/homebrew`:
@@ -192,10 +193,10 @@ output filename.
 ## 8. A worked example you can reproduce
 
 To see the whole workflow run end to end without supplying a generator of your
-own:
+own. Note this one runs from the repository root, not from `robust/`:
 
 ```bash
-make -C robust
+cd ..
 python3 scripts/reproduce_randomness_demo.py --repo . --out ../randomness-demo
 ```
 
