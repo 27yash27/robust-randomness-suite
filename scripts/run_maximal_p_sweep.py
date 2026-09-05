@@ -414,6 +414,17 @@ def main() -> int:
                 if cands:
                     best_obj_p = min(c["p"] for c in cands)
             best_beats = isinstance(best_obj, float) and best_obj <= args.threshold
+            # the record that achieved best_obj, so its numeric status travels
+            # with the number into the summary
+            best_record = None
+            if best_obj is not None:
+                for r in history:
+                    if (is_good(r) and isinstance(r.get("objective"), float)
+                            and r["objective"] == best_obj):
+                        best_record = r
+                        break
+                if best_record is None and isinstance(final_obj, float) and final_obj == best_obj:
+                    best_record = final_record
 
             print(f"    -> max_p={max_p}  final_objective={final_obj}  beats_{args.threshold:g}={beats}")
             if best_obj is not None and (not isinstance(final_obj, float)
@@ -424,15 +435,33 @@ def main() -> int:
             bads_above = [r for r in history if r["p"] > max_p and not is_good(r)]
             ceiling_reason = bads_above[0].get("status", "") if bads_above else "uncapped"
 
+            # A censored objective is unresolved, not a measured detection, so
+            # the threshold verdict has to say so rather than reading "yes".
+            final_status = final_record.get("status", "")
+            best_status = best_record.get("status", "") if best_record else ""
+            if final_status == "censored_zero":
+                beats_cell = "unresolved"
+            else:
+                beats_cell = "yes" if beats else "no"
+            if best_status == "censored_zero":
+                best_beats_cell = "unresolved"
+            elif best_obj is None:
+                best_beats_cell = ""
+            else:
+                best_beats_cell = "yes" if best_beats else "no"
+
             summary_rows.append({
                 "generator_code": gen_code, "generator_file": tested.name,
                 "test_num": cfg.test_num, "title": cfg.title,
                 "start_p": start_p, "max_p": max_p,
                 "final_objective": f"{final_obj:.17g}" if isinstance(final_obj, float) else "",
-                "beats_threshold": "yes" if beats else "no",
+                "final_numeric_status": final_status,
+                "best_obj_numeric_status": best_status,
+                "ks_backend": "exact-gmp (-k)" if args.ksexact else "default-psmirnov2x",
+                "beats_threshold": beats_cell,
                 "best_obj_in_sweep": f"{best_obj:.17g}" if isinstance(best_obj, float) else "",
                 "best_obj_p": best_obj_p if best_obj_p is not None else "",
-                "best_obj_beats_threshold": "yes" if best_beats else ("no" if best_obj is not None else ""),
+                "best_obj_beats_threshold": best_beats_cell,
                 "bad_reason_at_ceiling": ceiling_reason,
                 "n_probes": len(history),
             })
@@ -458,8 +487,10 @@ def main() -> int:
     summary_csv = campaign_root / "maximal_p.csv"
     with summary_csv.open("w", newline="", encoding="ascii") as f:
         cols = ["generator_code", "generator_file", "test_num", "title", "start_p",
-                "max_p", "final_objective", "beats_threshold",
-                "best_obj_in_sweep", "best_obj_p", "best_obj_beats_threshold",
+                "max_p", "final_objective", "final_numeric_status", "ks_backend",
+                "beats_threshold",
+                "best_obj_in_sweep", "best_obj_p", "best_obj_numeric_status",
+                "best_obj_beats_threshold",
                 "bad_reason_at_ceiling", "n_probes"]
         w = csv.DictWriter(f, fieldnames=cols)
         w.writeheader()
@@ -472,6 +503,8 @@ def main() -> int:
         "etalon": str(etalon),
         "rtest": str(rtest),
         "xor": args.xor,
+        "ksexact": args.ksexact,
+        "ks_backend": "exact-gmp (-k)" if args.ksexact else "default-psmirnov2x",
         "max_p_cap": args.max_p,
         "threshold": args.threshold,
         "charts_enabled": args.charts,

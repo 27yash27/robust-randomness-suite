@@ -33,3 +33,6 @@ __pycache__/
 
 # macOS
 .DS_Store
+
+# Output of scripts/reproduce_randomness_demo.py, if run inside the checkout
+randomness-demo/

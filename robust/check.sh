@@ -1,8 +1,13 @@
 #!/bin/sh
 # check.sh -- smoke test for a fresh build. Run it as "make check".
 #
-# Uses only files committed to this repository, so every run is byte-for-byte
-# repeatable and the expected values below can be compared exactly.
+# Uses only files committed to this repository, so the inputs are identical
+# everywhere. The controls run with -k, the exact multiprecision routine, whose
+# output is far more portable than the default kernel's: the default differs
+# between macOS and Linux around the 16th digit because long double is 8 bytes
+# on Apple Silicon and 16 on x86-64. Values are still compared with a relative
+# tolerance rather than as strings, since no floating-point result is
+# guaranteed identical across platforms and compilers.
 #
 # Three checks:
 #   1. the generator layer still matches the committed golden output
@@ -10,10 +15,8 @@
 #   3. a bad generator is detected        (data.e, the same digits as ASCII text)
 #   4. test 36 counts a template wherever it sits in a block
 #
-# Checks 2 and 3 compare against exact recorded values rather than a range,
-# since the inputs are committed and the computation is deterministic. A
-# mismatch means the build or a statistic changed, not that the generator is
-# good or bad.
+# A mismatch in checks 2 or 3 means the build or a statistic changed, not that
+# the generator under test is good or bad.
 #
 # Check 4 calls the statistic directly, because whether a counting error of
 # this kind shows up in a p-value depends on the input.
@@ -35,9 +38,11 @@ GOOD=../data/data.e.32
 BAD=../data/data.e
 REF=../data/data.e
 
-# Recorded on a known-good build. These are exact, not approximate.
-GOOD_EXPECTED=0.831969610796326586
-BAD_EXPECTED=0.000000000014509394
+# Recorded on a known-good build, using -k. Compared with the relative
+# tolerance below, not character for character.
+GOOD_EXPECTED=0.831969610796326475
+BAD_EXPECTED=0.000000000014508889
+TOLERANCE=1e-9
 
 fails=0
 
@@ -56,32 +61,43 @@ fi
 
 # control TESTED -> prints the first p-value of test 20 against the reference
 control() {
-  "$RTEST" -x -f "$1" -e "$REF" -t 20 -d 1 -n 100 -p 20 -q 20 -r 1 \
+  "$RTEST" -k -x -f "$1" -e "$REF" -t 20 -d 1 -n 100 -p 20 -q 20 -r 1 \
     2>/dev/null | head -1 | tr -d ' '
+}
+
+# close GOT EXPECTED -> "yes" when they agree to within TOLERANCE, relative for
+# values away from zero and absolute very close to it
+close() {
+  awk -v got="$1" -v want="$2" -v tol="$TOLERANCE" 'BEGIN{
+    if (got == "") { print "no"; exit }
+    d = got - want; if (d < 0) d = -d;
+    scale = (want < 0 ? -want : want);
+    if (scale < 1e-300) { print (d <= tol) ? "yes" : "no"; exit }
+    print (d / scale <= tol) ? "yes" : "no";
+  }'
 }
 
 echo "2. good generator should pass (data.e.32, binary digits of e)"
 p=$(control "$GOOD")
-if [ "$p" = "$GOOD_EXPECTED" ]; then
+if [ "$(close "$p" "$GOOD_EXPECTED")" = "yes" ]; then
   echo "   ok (p = $p)"
 elif [ -z "$p" ]; then
   echo "   FAIL: no p-value returned."
   fails=$((fails + 1))
 else
-  echo "   FAIL: p = $p, expected $GOOD_EXPECTED."
-  echo "         The inputs are committed, so this run should be exact."
+  echo "   FAIL: p = $p, expected $GOOD_EXPECTED (relative tolerance $TOLERANCE)."
   fails=$((fails + 1))
 fi
 
 echo "3. bad generator should be detected (data.e, the same digits as ASCII)"
 p=$(control "$BAD")
-if [ "$p" = "$BAD_EXPECTED" ]; then
+if [ "$(close "$p" "$BAD_EXPECTED")" = "yes" ]; then
   echo "   ok (p = $p)"
 elif [ -z "$p" ]; then
   echo "   FAIL: no p-value returned."
   fails=$((fails + 1))
 else
-  echo "   FAIL: p = $p, expected $BAD_EXPECTED."
+  echo "   FAIL: p = $p, expected $BAD_EXPECTED (relative tolerance $TOLERANCE)."
   fails=$((fails + 1))
 fi
 

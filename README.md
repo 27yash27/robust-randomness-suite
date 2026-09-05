@@ -189,6 +189,33 @@ Options: `-t` any test from 22 to 41, `--sizes` for your own sample sizes,
 `--coord` to pick a coordinate on tests that return several values, `-o` for the
 output filename.
 
+## 8. A worked example you can reproduce
+
+To see the whole workflow run end to end without supplying a generator of your
+own:
+
+```bash
+make -C robust
+python3 scripts/reproduce_randomness_demo.py --repo . --out ../randomness-demo
+```
+
+It builds three deterministic 20 MB inputs from recorded recipes, runs test 37
+at five fixed sample sizes against two of them, and writes:
+
+- `shake_fixture.svg` and `ascii_fixture.svg`, the curve comparisons
+- `results.csv`, with the exact command, revision, backend, raw p-value and
+  numerical status for every run
+- `input_manifest.csv`, with the generation recipe and SHA-256 of each input
+- `provenance.json`, plus raw logs and the statistic samples
+
+The SHAKE fixture should look random. The ASCII fixture, which is the bytes
+`01` repeated, should be detected: its p-value falls from 0.33 at 2 samples to
+about 1.45e-11 at 20. The sample sizes are fixed in advance, so nothing here is
+selected after the fact.
+
+This demonstrates the workflow. It is not the nine-generator validation
+campaign, and it does not estimate a false-positive rate.
+
 ---
 
 ## What is in here
