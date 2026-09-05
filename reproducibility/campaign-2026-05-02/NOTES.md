@@ -70,12 +70,27 @@ The current tooling fixes both halves of this: it reads end of input from
 as `censored_zero` rather than discarding it, and records the numeric status and
 the KS backend in its output. See `scripts/run_maximal_p_sweep.py`.
 
+## Inputs: eight of nine rebuild exactly, one does not
+
+The generators were rebuilt from `../generators/` on 5 September 2026 and
+compared byte for byte against the campaign inputs over their first 10 MB.
+Eight of the nine are identical, including the three using OpenSSL big-integer
+arithmetic.
+
+The exception is **G-using-SHA-1**. The campaign used a file dated 9 April 2026,
+built before the legacy inline SHA-1 transform was replaced with OpenSSL's
+`SHA1()`. The committed recipe contains that replacement and rebuilds the
+corrected generator instead, which was confirmed against the 4 May 2026
+regeneration.
+
+**So the `g03_g_using_sha` row below was computed on an input that the current
+recipe does not reproduce.** That row carries 6 of the campaign's 21 detections.
+The generator it describes is the pre-fix SHA-1 generator. Anyone repeating this
+work will build the corrected one and should expect different numbers for that
+generator. The other eight rows rest on inputs that rebuild exactly.
+
 ## What has not been established
 
-- The generator files have **not** been rebuilt from
-  `../generators/NIST_STS_Modifications_Guide.md` and compared against the
-  hashes in `../input-manifest.csv`. Until someone does that, the recipe is
-  documentation, not a verified reproduction path.
 - Tests 32 to 41 have no campaign of their own.
 - The reported minimum over a sweep is a search summary, not a calibrated
   p-value. See the note in the main README.

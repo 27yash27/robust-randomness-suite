@@ -22,6 +22,23 @@ One fixture is a SHAKE-256 stream that should look random; the other is the
 bytes `01` repeated, which should be detected. Comparing the two shows what a
 test does when it sees something and when it does not.
 
+Read `numeric_status` in the results rather than only the p-value:
+
+| status | meaning |
+|---|---|
+| `reported` | an ordinary p-value |
+| `below_printing_floor` | smaller than the driver's 18 decimals can show; the true value is unknown, not a certified detection |
+| `exactly_one` | legitimate at small sample sizes, suspect the KS underflow at large ones |
+| `statistic_declined` | the test says it cannot compute on this input |
+| `ran_out_of_data` | raise `--size-mb` |
+
+`statistic_declined` is expected for Random Excursions (32) and its variant (33)
+on the `01` fixture: NIST requires a minimum number of excursion cycles, and a
+perfectly balanced stream never produces enough. The test is reporting its own
+limit, which is why the runner does not treat it as a failure. On tests 22 to 41
+at 300 MB, 18 of the 20 produce curves for both fixtures, and those two produce
+them for the random-looking one only.
+
 For a single test with the curves side by side, use `scripts/compare_curves.py`
 instead. For a shorter run, `scripts/reproduce_randomness_demo.py` covers test
 37 only.
@@ -45,12 +62,49 @@ Download NIST STS 2.1.2 from
 https://csrc.nist.gov/projects/random-bit-generation/documentation-and-software,
 apply these files, and follow the guide.
 
-**This path has not been re-walked from scratch.** The files are the ones that
-produced the campaign inputs, but nobody has yet rebuilt the generators from
-this guide on a clean machine and confirmed the output matches the hashes in
-`input-manifest.csv`. Until someone does, treat it as documentation rather than
-a verified reproduction. Doing that check is the single most useful thing a
-reviewer could do here, and the hashes are recorded precisely so it is possible.
+### This path has been checked
+
+On 5 September 2026 the modified STS was rebuilt from exactly these files on
+macOS with OpenSSL 3, and the first 10 MB of each generator was regenerated and
+compared byte for byte against the campaign inputs.
+
+| Generator | Result |
+|---|---|
+| Linear Congruential | identical |
+| Quadratic Congruential I | identical |
+| Quadratic Congruential II | identical |
+| Cubic Congruential | identical |
+| XOR | identical |
+| Modular Exponentiation | identical |
+| Blum-Blum-Shub | identical |
+| Micali-Schnorr | identical |
+| **G-using-SHA-1** | **differs, see below** |
+
+Eight of the nine reproduce exactly, including the three that use OpenSSL
+big-integer arithmetic.
+
+### The SHA-1 generator is the exception
+
+The campaign input `bad_G_Using_SHA-1_1GB.bin`, dated 9 April 2026, was built
+**before** the legacy inline SHA-1 transform was replaced with OpenSSL's
+`SHA1()`. The recipe committed here contains that replacement, so it does not
+rebuild that file. It rebuilds the corrected generator, and that was confirmed:
+the regenerated 4 May 2026 file matches this recipe byte for byte.
+
+So one row of the preserved campaign, `g03_g_using_sha`, was computed on an
+input that the committed recipe no longer produces. Both files are listed in
+`input-manifest.csv` with their hashes, so which is which stays unambiguous.
+Anyone rebuilding from this guide gets the corrected SHA-1 generator, which is
+the right one to use going forward, but its numbers will not match that row.
+
+Reproduce the check with, from a built STS directory:
+
+```bash
+printf "1\n1\n0\n80\n" | ./assess 1000000     # generator 1, 80 x 1 Mbit = 10 MB
+shasum -a 256 bad_generator_output.bin
+```
+
+Substitute the generator number 1 to 9 as listed in the guide.
 
 ## The inputs
 

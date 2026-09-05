@@ -103,6 +103,13 @@ def classify(result, dimension):
     if "oops" in result.stdout or "oops" in result.stderr:
         return ("ran_out_of_data", None, "")
     found = FLOAT_RE.findall(result.stdout)
+    if not found:
+        # rtest exits 0 and prints nothing when the statistic itself declines to
+        # produce a value. Random Excursions (32) and its variant (33) do this
+        # when the bit stream yields too few excursion cycles, which NIST
+        # specifies; a perfectly balanced input such as "01" repeated never
+        # produces enough. That is the test reporting a limit, not an error.
+        return ("statistic_declined", None, "")
     if len(found) < dimension:
         return ("parse_error", None, "")
     raw = found[0]
@@ -172,6 +179,7 @@ def main():
             "returncode", "repo_revision", "command", "stdout_file"]
     summary = []
     incomplete = []
+    all_statuses = []
 
     with (out / "results.csv").open("w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=cols)
@@ -199,6 +207,7 @@ def main():
                     stdout_rel = Path("logs") / f"{tag}.txt"
                     (out / stdout_rel).write_text(r.stdout + r.stderr)
                     status, value, raw = classify(r, cfg.dimension)
+                    all_statuses.append(status)
                     w.writerow({
                         "test_num": tnum, "title": cfg.title, "fixture": fixture,
                         "dimension": cfg.dimension, "n_value": cfg.n_value,
@@ -239,13 +248,21 @@ def main():
     for tnum, title, a_ok, b_ok in summary:
         print(f"{tnum:<6}{title[:32]:<34}{a_ok:>8}{b_ok:>12}")
     print(f"\noutputs: {out}")
+    # Real problems, as opposed to a statistic declining or wanting more data.
+    hard = [r for r in all_statuses
+            if r in ("process_failure", "parse_error", "numerical_failure")]
     if incomplete:
-        print(f"\n{len(incomplete)} test/fixture pairs produced no usable run:")
+        print(f"\n{len(incomplete)} test/fixture pairs produced no curves:")
         for tnum, fixture in incomplete:
             print(f"   test {tnum} / {fixture}")
-        print("Most often this is too little data. Rerun with a larger --size-mb.")
+        print("Check numeric_status in results.csv. 'statistic_declined' means the "
+              "test reported it cannot compute on that input, which is expected for "
+              "Random Excursions on a perfectly balanced stream. "
+              "'ran_out_of_data' means you should raise --size-mb.")
+    if hard:
+        print(f"\n{len(hard)} runs failed for reasons that need looking at.")
         return 1
-    print("\nEvery test produced curves for both fixtures.")
+    print("\nNo run failed unexpectedly.")
     return 0
 
 
