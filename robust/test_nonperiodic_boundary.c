@@ -9,9 +9,10 @@
  * The original implementation only began counting "fresh bits" after the
  * 9-bit window had filled, which left the first 8 candidate positions of
  * every block ineligible: offsets 0-7 scored 0 matches while offset 8 scored
- * 1. Note that this could not be caught through the suite's p-values, because
- * the same code produces both compared samples and the error cancels; it has
- * to be checked against the statistic directly.
+ * 1. Whether the error shows up in a p-value depends entirely on the input:
+ * on some fixtures many coordinates move, on others none do. That makes a
+ * p-value comparison an unreliable detector, so this checks the statistic
+ * directly.
  *
  * Build and run:  make test-nonperiodic-boundary
  */

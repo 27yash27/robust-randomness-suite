@@ -66,12 +66,30 @@ what is new or changed, to make review against upstream straightforward.
   `test_nonperiodic_boundary.c` locks the behaviour in by running the statistic
   at every offset in a block and requiring the same count each time.
 
-  Worth noting for the record: this could not be seen from the suite's
-  p-values. The same code produces both compared samples, so the undercount
-  cancels and the p-values are bit-identical before and after the fix. The
-  error cost sensitivity, not validity, which is the property the robust
-  construction is supposed to provide. It has to be tested against the
-  statistic directly, which is what the new regression does.
+  The fix does change reported p-values. On the fixture below, 19 of the 148
+  coordinates moved (coordinate 9 went from 0.174533 to 0.335591); on other
+  inputs at other settings nothing moved at all, because whether the missed
+  positions actually hold a template occurrence depends on the data. So a
+  p-value comparison is not a reliable way to detect this class of error, and
+  the regression checks the statistic directly instead.
+
+  What the robust construction provides is null calibration under its
+  assumptions: a deterministic error in a statistic should not make a good
+  generator systematically fail. That is not the same as leaving individual
+  p-values unchanged, and it is not by itself a measurement of lost
+  sensitivity, which would need a power comparison.
+
+  Reproduce the 19 changed coordinates with:
+
+  ```python
+  from hashlib import shake_256
+  from pathlib import Path
+  Path('tested.bin').write_bytes(shake_256(b'rtest review tested v1').digest(128_000_000))
+  Path('etalon.bin').write_bytes(shake_256(b'rtest review etalon v1').digest(128_000_000))
+  ```
+  ```
+  rtest -x -f tested.bin -e etalon.bin -p 20 -q 20 -d 148 -n 2000 -t 36 -r 1
+  ```
 
 ## Issues found in upstream files (reported, not changed)
 

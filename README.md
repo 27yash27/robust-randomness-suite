@@ -61,10 +61,12 @@ Confirm the build is good before you trust any result:
 make check
 ```
 
-It takes a few seconds and uses only files in this repository. It checks that
-the generators still match their committed reference output, that a known-good
-generator passes, and that a known-bad one is detected. If all three pass, the
-build is sound.
+It takes a few seconds and uses only files in this repository. It checks four
+things: that the generators still match their committed reference output, that
+a known-good generator passes, that a known-bad one is detected, and that test
+36 counts a template wherever it sits in a block. Passing means those four
+checks passed. It is a build sanity check, not evidence that every statistic is
+correct.
 
 ## 3. Run one test
 
@@ -122,7 +124,9 @@ why.
 - **Very small, say below 1e-6**: the test can tell your generator from random.
   Smaller means stronger evidence. In our validation runs anything below 1e-10
   counted as a real detection.
-- **Exactly 1.0**: not a result. Your sample size was too large. See below.
+- **Exactly 1.0**: legitimate at very small sample sizes, where the discrete
+  KS distribution really does reach 1. At larger sample sizes it usually means
+  the p-value routine underflowed. See the note below.
 - **`oops, eof in generator`**: your files are too small for that test. Use
   bigger ones or lower `-p` and `-q`.
 
@@ -143,8 +147,11 @@ Two things that will bite you:
 - **Very small p-values are printed as zero.** The driver prints 18 decimal
   places, so anything below 1e-18 comes out as `0.000000000000000000`, and the
   default routine can print a small negative value instead through
-  cancellation. Both mean "smaller than can be shown here", not "no result".
-  Rerun that point with `-k` if you need the value.
+  cancellation. Both mean "smaller than can be shown here", not "no result",
+  and neither certifies a particular value. `-k` removes the cancellation but
+  not the 18-decimal output, and the exact routine reduces its own denominator
+  under 2^128, which can truncate a very small numerator to zero as well. Treat
+  such a point as "too small to report" rather than as a measured number.
 - **A single p-value is not the answer.** The p-value is not monotone in the
   sample size, so a real signal can appear at one size and vanish at another.
   Run several sizes and take the smallest value you see. That minimum is a

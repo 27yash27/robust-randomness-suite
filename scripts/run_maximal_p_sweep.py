@@ -58,6 +58,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-generators", type=int, default=0, help="Cap for smoke testing; 0 = all")
     parser.add_argument("--start-p", nargs="*", default=[],
                         help="Per-test starting p overrides like 27=10 22=4")
+    parser.add_argument("--ksexact", action="store_true",
+                        help="pass -k so rtest uses the exact multiprecision KS "
+                             "routine. Slower, but the default routine underflows "
+                             "at large sample sizes on some platforms (see "
+                             "CHANGES-vs-upstream.md). Recommended above --max-p 2000.")
     parser.add_argument("--max-p", type=int, default=10_000,
                         help="Safety cap on doubling phase (default 10,000 = rtest's SAMPLE_SIZE_BOUND)")
     parser.add_argument("--threshold", type=float, default=1e-10,
@@ -112,10 +117,13 @@ def parse_values(cfg: TestConfig, stdout: str) -> list[float]:
 
 
 def build_cmd(rtest: Path, tested: Path, etalon: Path, rel_out_dir: Path,
-              cfg: TestConfig, p: int, use_xor: bool) -> list[str]:
+              cfg: TestConfig, p: int, use_xor: bool,
+              ksexact: bool = False) -> list[str]:
     cmd = [str(rtest)]
     if use_xor:
         cmd.append("-x")
+    if ksexact:
+        cmd.append("-k")
     cmd += [
         "-f", str(tested),
         "-e", str(etalon),
@@ -133,7 +141,7 @@ def build_cmd(rtest: Path, tested: Path, etalon: Path, rel_out_dir: Path,
 
 
 def run_one(rtest: Path, tested: Path, etalon: Path, cwd: Path, rel_out_dir: Path,
-            cfg: TestConfig, p: int, use_xor: bool) -> dict:
+            cfg: TestConfig, p: int, use_xor: bool, ksexact: bool = False) -> dict:
     # rtest enforces strlen(output_directory) < 128 and does its own mkdir,
     # so we run with cwd=campaign_root and pass a short relative -o path,
     # creating the parent ourselves but letting rtest create the leaf.
@@ -148,7 +156,7 @@ def run_one(rtest: Path, tested: Path, etalon: Path, cwd: Path, rel_out_dir: Pat
                 "output_dir": str(abs_out),
                 "stderr_tail": [f"rel out path too long: {len(str(rel_out_dir))} chars"],
                 "status": "rtest_failed"}
-    cmd = build_cmd(rtest, tested, etalon, rel_out_dir, cfg, p, use_xor)
+    cmd = build_cmd(rtest, tested, etalon, rel_out_dir, cfg, p, use_xor, ksexact)
     t0 = time.monotonic()
     result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
     elapsed = time.monotonic() - t0
@@ -183,8 +191,12 @@ def run_one(rtest: Path, tested: Path, etalon: Path, cwd: Path, rel_out_dir: Pat
     # such a point with -k for an exact value.
     if record["objective"] <= 0.0:
         record["status"] = "censored_zero"
-        record["note"] = ("p-value below the printable resolution of 1e-18; "
-                          "treated as a detection, rerun with -k for an exact value")
+        record["note"] = (
+            "p-value at or below the driver's printing floor; the true value is "
+            "unknown, not certified small. -k removes the default kernel's "
+            "cancellation but not the 18-decimal output format, and ks2mp.c "
+            "reduces its denominator under 2^128, which can itself truncate a "
+            "small numerator to zero. Treat as 'too small to report'.")
     else:
         record["status"] = "ok"
     return record
@@ -284,6 +296,16 @@ def generate_chart(plot_script: Path, run_dir: Path, coord: int, out_file: Path,
 
 def main() -> int:
     args = parse_args()
+
+    # The default KS routine underflows at large sample sizes on some platforms
+    # and then reports exactly 1.0 whatever the data says. Sweeping past that
+    # point without -k produces numbers that look like clean passes.
+    if args.max_p > 2000 and not args.ksexact:
+        print(f"warning: --max-p {args.max_p} without --ksexact. The default KS "
+              f"routine can underflow above roughly 2000-2500 samples and return "
+              f"exactly 1.0 regardless of the data (platform dependent; see "
+              f"CHANGES-vs-upstream.md). Pass --ksexact for the exact routine, "
+              f"or lower --max-p.", file=sys.stderr)
     plot_script = (Path(__file__).resolve().parent / "plot_distribs_svg.py").resolve()
 
     try:
@@ -344,7 +366,8 @@ def main() -> int:
 
             def run_fn(p: int, _cfg=cfg, _probes_rel=probes_rel, _tested=tested) -> dict:
                 rec = run_one(rtest, _tested, etalon, campaign_root,
-                              _probes_rel / f"p{p:06d}", _cfg, p, args.xor)
+                              _probes_rel / f"p{p:06d}", _cfg, p, args.xor,
+                              args.ksexact)
                 obj = rec.get("objective", "n/a")
                 obj_str = f"{obj:.6g}" if isinstance(obj, float) else obj
                 print(f"    p={p:>7}  {rec.get('status','?'):<12}  obj={obj_str}  ({rec.get('elapsed_s','?')}s)")
@@ -366,7 +389,8 @@ def main() -> int:
 
             final_rel = rel_test_dir / f"final_p{max_p:06d}"
             final_dir = campaign_root / final_rel
-            final_record = run_one(rtest, tested, etalon, campaign_root, final_rel, cfg, max_p, args.xor)
+            final_record = run_one(rtest, tested, etalon, campaign_root, final_rel,
+                                   cfg, max_p, args.xor, args.ksexact)
             final_obj = final_record.get("objective")
             beats = isinstance(final_obj, float) and final_obj <= args.threshold
             # Best objective across the entire sweep (per CiE submission §4):

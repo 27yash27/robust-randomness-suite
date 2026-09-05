@@ -1,8 +1,8 @@
 #!/bin/sh
 # check.sh -- smoke test for a fresh build. Run it as "make check".
 #
-# Uses only files committed to this repository, plus a small throwaway etalon
-# read from /dev/urandom, so it works on a clean checkout with no setup.
+# Uses only files committed to this repository, so every run is byte-for-byte
+# repeatable and the expected values below can be compared exactly.
 #
 # Three checks:
 #   1. the generator layer still matches the committed golden output
@@ -10,15 +10,13 @@
 #   3. a bad generator is detected        (data.e, the same digits as ASCII text)
 #   4. test 36 counts a template wherever it sits in a block
 #
-# Check 2 is a coarse guard, not a proof: at 20 samples a p-value at or above
-# 0.9999 is far more likely to be the KS underflow described in
-# CHANGES-vs-upstream.md than a real result. At very small sample sizes a
-# p-value of exactly 1 can be perfectly legitimate, which is why this check
-# uses 20 samples rather than 1 or 2.
+# Checks 2 and 3 compare against exact recorded values rather than a range,
+# since the inputs are committed and the computation is deterministic. A
+# mismatch means the build or a statistic changed, not that the generator is
+# good or bad.
 #
-# Check 4 has to call the statistic directly. Under the robust construction
-# both compared samples come from the same code, so a counting error cancels
-# in the p-value and cannot be seen from the suite's output.
+# Check 4 calls the statistic directly, because whether a counting error of
+# this kind shows up in a p-value depends on the input.
 
 cd "$(dirname "$0")" || exit 1
 
@@ -28,9 +26,18 @@ if [ ! -x "$RTEST" ]; then
   exit 1
 fi
 
-ETAL="${TMPDIR:-/tmp}/rtest_check_etalon.$$"
-trap 'rm -f "$ETAL" tmp.out' EXIT
-head -c 4000000 /dev/urandom > "$ETAL"
+trap 'rm -f tmp.out' EXIT
+
+# Committed control pair, both derived from the digits of e:
+#   data.e.32  the digits in binary, which should look random
+#   data.e     the same digits as ASCII text, which should not
+GOOD=../data/data.e.32
+BAD=../data/data.e
+REF=../data/data.e
+
+# Recorded on a known-good build. These are exact, not approximate.
+GOOD_EXPECTED=0.831969610796326586
+BAD_EXPECTED=0.000000000014509394
 
 fails=0
 
@@ -47,44 +54,36 @@ else
   echo "   skipped (run 'make test-generators' to enable)"
 fi
 
-# run_test TEST DIM N P FILE -> prints the first p-value
-run_test() {
-  "$RTEST" -x -f "$5" -e "$ETAL" -p "$4" -q "$4" -d "$2" -n "$3" -t "$1" -r 1 \
+# control TESTED -> prints the first p-value of test 20 against the reference
+control() {
+  "$RTEST" -x -f "$1" -e "$REF" -t 20 -d 1 -n 100 -p 20 -q 20 -r 1 \
     2>/dev/null | head -1 | tr -d ' '
 }
 
 echo "2. good generator should pass (data.e.32, binary digits of e)"
-p=$(run_test 0 1 0 20 ../data/data.e.32)
-verdict=$(awk -v p="$p" 'BEGIN{
-  if (p == "" )            print "empty";
-  else if (p+0 >= 0.9999)  print "high";
-  else if (p+0 <= 0.0001)  print "low";
-  else                     print "ok";
-}')
-case "$verdict" in
-  ok)    echo "   ok (p = $p)" ;;
-  high)  echo "   FAIL: p = $p. A p-value at or near 1.0 usually means the KS"
-         echo "         routine underflowed. See CHANGES-vs-upstream.md."
-         fails=$((fails + 1)) ;;
-  low)   echo "   FAIL: p = $p. A known-good generator was rejected."
-         fails=$((fails + 1)) ;;
-  *)     echo "   FAIL: no p-value returned."; fails=$((fails + 1)) ;;
-esac
+p=$(control "$GOOD")
+if [ "$p" = "$GOOD_EXPECTED" ]; then
+  echo "   ok (p = $p)"
+elif [ -z "$p" ]; then
+  echo "   FAIL: no p-value returned."
+  fails=$((fails + 1))
+else
+  echo "   FAIL: p = $p, expected $GOOD_EXPECTED."
+  echo "         The inputs are committed, so this run should be exact."
+  fails=$((fails + 1))
+fi
 
 echo "3. bad generator should be detected (data.e, the same digits as ASCII)"
-p=$(run_test 0 1 0 20 ../data/data.e)
-verdict=$(awk -v p="$p" 'BEGIN{
-  if (p == "")            print "empty";
-  else if (p+0 < 0.000001) print "ok";
-  else                     print "missed";
-}')
-case "$verdict" in
-  ok)     echo "   ok (p = $p)" ;;
-  missed) echo "   FAIL: p = $p. ASCII text should be detected easily;"
-          echo "         the test lost its sensitivity."
-          fails=$((fails + 1)) ;;
-  *)      echo "   FAIL: no p-value returned."; fails=$((fails + 1)) ;;
-esac
+p=$(control "$BAD")
+if [ "$p" = "$BAD_EXPECTED" ]; then
+  echo "   ok (p = $p)"
+elif [ -z "$p" ]; then
+  echo "   FAIL: no p-value returned."
+  fails=$((fails + 1))
+else
+  echo "   FAIL: p = $p, expected $BAD_EXPECTED."
+  fails=$((fails + 1))
+fi
 
 echo "4. test 36 counts a template at every offset in a block"
 if [ -x ./test-nonperiodic-boundary ]; then
