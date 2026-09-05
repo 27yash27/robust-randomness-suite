@@ -6,12 +6,20 @@ a.out
 *.a
 tmp.out
 
-# Per-run test outputs from the batch scripts
+# Per-run test outputs from the batch scripts.
+# The suffixes are inconsistent upstream: rtest1m.sh writes .tst1m, the rest
+# write .test<size>. Both spellings are listed on purpose.
 *.tst1m
-*.tst10m
-*.tst100m
-*.tst1g
-*.tst10g
+*.test10m
+*.test100m
+*.test1g
+*.test10g
+*.expansion
+
+# but keep the sample outputs that ship with upstream rtest
+!genone.bin.test10m
+!genone.bin.test100m
+!rtest100m.sh.test100m
 
 # LaTeX build products (doc/) — note: the committed *.pdf in doc/pdfs are kept
 *.aux

@@ -21,7 +21,7 @@ CPP_INCLUDE = minimal_distance.hpp ../spectral_tests/specgraph.h ../spectral_tes
 
 CPP_CODE =  ../spectral_tests/specgraph.cpp  ../spectral_tests/spectral_rtest.cpp  ../spectral_tests/rand.cpp
 
-SCRIPTS = rtest1m.sh rtest10m.sh rtest100m.sh rtest1g.sh rtest10g.sh
+SCRIPTS = rtest1m.sh rtest10m.sh rtest100m.sh rtest1g.sh rtest10g.sh rtest_expansion.sh
 
 # different tests implemented in several C files
 TESTS_C = test_func.c test_opso.c test_oqso.c test_sts_serial.c test_bytedistrib.c test_runs.c test_sums.c test_ent.c test_lz.c test_fft.c test_rank.c test_bitstream.c test_birthday.c test_dist2d.c test_spectral.c test_ks1.c test_monobit.c test_nist_block.c test_dna.c test_count1s_stream.c test_count1s_byte.c test_parking.c test_squeeze.c test_operm5.c test_craps.c test_dab_dct.c test_dab_filtering.c test_linear_complexity.c test_random_excursions.c test_random_excursions_variant.c test_3d_spheres.c test_gcd.c test_nonperiodic.c test_runs_nist.c test_longest_run.c test_cusum.c test_approximate_entropy.c test_universal.c
@@ -42,6 +42,9 @@ test-generators: test-generators.c generators.c generators.h; \
 test-generators-run: test-generators;\
    ./test-generators > tmp.out; diff test-generators.out tmp.out;\
    echo "No diff output means OK"
+
+check: rtest test-generators; \
+   ./check.sh
    
 clean: ; \
    rm *~ *.o a.out rtest test-generators tmp.out; \

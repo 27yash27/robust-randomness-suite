@@ -34,14 +34,18 @@ what is new or changed, to make review against upstream straightforward.
 
 - `robust/test_func.h` — 20 forward declarations added.
 - `robust/test_func.c` — 20 entries added to `functions_list[]`.
-- `robust/Makefile` — the 20 new files appended to `TESTS_C` (no other change).
+- `robust/Makefile` — the 20 new files appended to `TESTS_C`;
+  `rtest_expansion.sh` added to `SCRIPTS` so `make install` installs it;
+  a `check` target added that runs `check.sh`.
 
 ## Added tooling and docs (not part of upstream)
 
-- `scripts/` — Python sweep + ECDF-plotting tools (research tooling; several
-  assume the author's local folder layout — set their path flags to run elsewhere).
+- `scripts/` — Python sweep and ECDF-plotting tools. Standard library only.
+  All paths are derived from the script location or passed as arguments, so
+  they run from a clean checkout anywhere.
 - `robust/rtest_expansion.sh` — battery runner for tests 22–41 (the upstream
   `rtest1m.sh … rtest10g.sh` cover the original tests only).
+- `robust/check.sh` — smoke test for a fresh build, run as `make check`.
 - `robust/doc/expansion-notes.txt` — documentation of the expansion.
 - `README.md` — this suite's README. Shen's original is kept as `README-upstream.md`.
 - `CHANGES-vs-upstream.md` — this file.

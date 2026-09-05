@@ -53,6 +53,17 @@ You now have the `rtest` binary.
 - The Makefile builds with `-fsanitize=address`, which is about ten times
   slower. Remove it from `FLAGS` for long runs.
 
+Confirm the build is good before you trust any result:
+
+```bash
+make check
+```
+
+It takes a few seconds and uses only files in this repository. It checks that
+the generators still match their committed reference output, that a known-good
+generator passes, and that a known-bad one is detected. If all three pass, the
+build is sound.
+
 ## 3. Run one test
 
 ```bash
@@ -72,8 +83,11 @@ The flags:
 | `-d` | how many values that test returns |
 | `-n` | that test's size parameter |
 | `-p` `-q` | the two sample sizes |
-| `-r 1` | run once |
+| `-r 1` | run once. `-r 0` repeats until the data runs out. |
 | `-k` | slower, exact p-value. See the warning in step 5. |
+| `-m` | extra parameter, needed only by some tests (test 31 uses `-m 500`) |
+| `-o` | write the raw sample values to this directory, for plotting |
+| `-v` | verbose, prints what it is doing |
 
 **`-d` and `-n` are not free to choose.** Each test needs particular values.
 They are listed in `scripts/robust_test_catalog.py`, and the scripts below read
@@ -89,6 +103,11 @@ them from there, so you never have to type them by hand.
 Results land in `yourgen.bin.expansion` and `yourgen.bin.test100m`. Use
 `rtest1m.sh`, `rtest10m.sh`, `rtest100m.sh`, `rtest1g.sh` or `rtest10g.sh` to
 match your file's size.
+
+Watch the output suffix, it is inconsistent upstream. `rtest1m.sh` writes
+`.tst1m`, with no `e`. Every other battery writes `.test10m`, `.test100m`,
+`.test1g`, `.test10g`. If a result file seems to be missing, that is usually
+why.
 
 ## 5. Read the result
 
@@ -193,8 +212,10 @@ Checked against the nine NIST reference generators. The three good ones
 (Blum-Blum-Shub, Linear Congruential, Micali-Schnorr) gave no false positives.
 All six defective ones were detected, with best-in-sweep p-values below 1e-10.
 Results agreed with and without the XOR step. The generator files run to tens of
-GB and are not included, but `scripts/` regenerates everything from a directory
-of generator files you supply.
+GB and are not included. `scripts/run_maximal_p_sweep.py` reproduces the
+campaign for the twenty expansion tests (22-41) from a directory of generator
+files you supply; the original tests 0-21 are driven by the `rtest*.sh`
+batteries instead, since the Python catalog only covers 22-41.
 
 ## Credits
 
