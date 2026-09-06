@@ -1,7 +1,14 @@
 # Changes vs. upstream `rtest`
 
 Upstream baseline: [`alexander-shen/rtest`](https://github.com/alexander-shen/rtest)
-at commit `6ae81dcec44d5cbe46c7bc58620c275a7cfa3c1d`. Comparisons below are
+at commit `6ae81dcec44d5cbe46c7bc58620c275a7cfa3c1d`.
+
+Re-derive this comparison at any time with
+`tools/check-upstream-provenance.sh`, which clones that revision and reports,
+for every tracked file, whether it is identical to upstream, modified, or new.
+It currently reports **113 identical, 4 modified, 26 new**, and exits non-zero
+if the modified set ever stops matching the one recorded below. Licensing
+consequences of that split are in `LICENSING.md`. Comparisons below are
 against that revision, so they stay checkable as upstream moves.
 
 This suite is Alexander Shen's [`rtest`](https://github.com/alexander-shen/rtest)

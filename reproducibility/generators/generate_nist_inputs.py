@@ -99,6 +99,14 @@ def main():
             sys.exit(f"unknown generator {g}; valid values are {sorted(GENERATORS)}")
 
     out = a.out.resolve()
+    # The per-generator workspace is a copy of the STS tree. If the output
+    # directory sits inside that tree, the copy would contain the destination
+    # and recurse until the path length overflows.
+    if out == sts or sts in out.parents:
+        sys.exit(f"--out must be outside --sts.\n"
+                 f"  --sts {sts}\n  --out {out}\n"
+                 f"Each generator runs in a copy of the STS tree, so an output "
+                 f"directory inside it would be copied into itself.")
     if out.exists() and not a.force:
         sys.exit(f"{out} already exists; choose a new directory or pass --force")
     out.mkdir(parents=True, exist_ok=True)

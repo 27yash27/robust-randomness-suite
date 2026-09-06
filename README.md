@@ -343,12 +343,23 @@ cover tests 0, 1 and 3-16.
 
 ## Credits
 
-The robust two-sample scheme and the original `rtest` are by Alexander Shen
+See `LICENSING.md` for full attribution. In brief: the robust two-sample scheme
+and the original `rtest` are by Alexander Shen
 (LIRMM, CNRS / Univ. Montpellier); his original description is kept as
 `README-upstream.md`. Statistics adapted from Diehard (Marsaglia), Dieharder
 (R. G. Brown) and the NIST Statistical Test Suite (SP 800-22).
 
 ## License
 
-Not settled yet. Several statistics derive from Dieharder, which is GPL, so this
-will most likely have to be GPL as well, matching upstream `rtest`.
+Intended to be **GPL-2.0-or-later**, which is both what the Dieharder ancestry
+requires and what Alexander Shen wants so the suite can be packaged in Linux
+distributions.
+
+It is not in force yet, and there is no `LICENSE` file, for one reason: upstream
+`rtest` declares no license, and Shen holds the copyright on the 113 files here
+that are byte-identical to it. A short written grant from him settles it.
+**Until then, do not redistribute the combined work.**
+
+`LICENSING.md` gives the component-by-component breakdown: which tests carry
+GPL through Dieharder, which come from the public-domain NIST suite, and the
+separate notice on `spectral_tests/rand.h` that must travel with the code.

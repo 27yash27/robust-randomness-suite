@@ -116,6 +116,9 @@ def main() -> int:
 
     failed_groups = [gi for gi, rc in statuses.items() if rc != 0]
     missing_groups: list[int] = []
+    # Set now so the merged metadata can reference it; recomputed once the
+    # per-group files have actually been read.
+    incomplete = bool(failed_groups)
     if failed_groups and not args.allow_incomplete:
         print(f"\nGroups {failed_groups} did not exit cleanly. Their per-group "
               f"directories and logs are left in place for inspection; nothing "
@@ -164,6 +167,8 @@ def main() -> int:
     file_to_canonical = {f: canonical_generator_code(i, f) for f, i in file_to_idx.items()}
     for r in rows:
         r[0] = file_to_canonical[r[1]]
+
+    incomplete = bool(failed_groups or missing_groups)
 
     with (merged_dir / "maximal_p.csv").open("w", newline="", encoding="ascii") as f:
         w = csv.writer(f)
@@ -236,7 +241,6 @@ def main() -> int:
     # Now that artifacts are moved out of each sub-campaign, remove the
     # (mostly-empty) per-group dirs so the directory tree is identical to a
     # serial-run output. Keep their .log files in the workdir for debugging.
-    incomplete = bool(failed_groups or missing_groups)
     if incomplete:
         print("Keeping the per-group directories, because this campaign is "
               "incomplete and their metadata is not fully carried into the "
