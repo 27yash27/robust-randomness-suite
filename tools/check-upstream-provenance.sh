@@ -46,11 +46,29 @@ echo "modified from upstream:$modified"
 echo "new in this repository: $new (see CHANGES-vs-upstream.md)"
 
 expected=" README.md robust/Makefile robust/test_func.c robust/test_func.h"
+expected_same=113
+expected_new=29
+
+rc=0
 if [ "$modified" != "$expected" ]; then
   echo
   echo "MISMATCH: the modified set is not the one CHANGES-vs-upstream.md records."
   echo "expected:$expected"
+  rc=1
+fi
+
+# The counts are quoted in CHANGES-vs-upstream.md and in README.md, so they are
+# checked too: without this they go stale silently the next time a file is added.
+if [ "$same" != "$expected_same" ] || [ "$new" != "$expected_new" ]; then
+  echo
+  echo "MISMATCH: counts are $same identical / $new new,"
+  echo "but CHANGES-vs-upstream.md records $expected_same identical / $expected_new new."
+  echo "Update that file (and the count in README.md) or this script."
+  rc=1
+fi
+
+if [ "$rc" -ne 0 ]; then
   exit 1
 fi
 echo
-echo "The modified set matches CHANGES-vs-upstream.md."
+echo "The modified set and the counts match CHANGES-vs-upstream.md."

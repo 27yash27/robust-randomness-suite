@@ -20,10 +20,13 @@
  * Sec. 2.7).
  *
  * Streaming implementation: a single shared 9-bit sliding window scans each
- * block once; for each of the 148 templates we keep an O(1) "bits-since-
- * last-match" counter so the non-overlapping rule is enforced independently
- * per template without buffering the bitstream. Per-block work is
- * O(M * 148) = ~1.5e8 ops at M = 1e6, well within sweep budgets.
+ * block once, without buffering the bitstream. The 148 templates are distinct
+ * 9-bit values, so at most one of them can equal the window; a 512-entry
+ * reverse lookup answers "which template is this?" in one array read instead
+ * of a 148-way scan at every bit. The non-overlapping rule is then enforced
+ * per template in O(1) through next_ok[] below. Per-block work is O(M),
+ * about 1e6 operations at M = 1e6 where a per-bit scan over all templates
+ * costs ~1.5e8.
  *
  * Templates are embedded in the source (verbatim transcription of
  * sts-2.1.2/templates/template9) so the test has no runtime file I/O and
@@ -61,6 +64,30 @@ static const unsigned short nonp_templates[NONP_NUM_TEMPLATES] = {
     0x1f8, 0x1fa, 0x1fc, 0x1fe
 };
 
+/* Reverse of nonp_templates: window value -> template index, or -1 for a
+ * window that is not a template. The templates are 148 distinct values in
+ * [0, 512), so this is a faithful inverse and at most one template can match
+ * any given window. Built once on first use. */
+#define NONP_WINDOW_VALUES (1 << NONP_TEMPLATE_LEN)
+static short nonp_template_of_window[NONP_WINDOW_VALUES];
+static bool nonp_lookup_ready = false;
+
+static void nonp_build_lookup(void) {
+  if (nonp_lookup_ready) {
+    return;
+  }
+  for (int w = 0; w < NONP_WINDOW_VALUES; w++) {
+    nonp_template_of_window[w] = -1;
+  }
+  for (int t = 0; t < NONP_NUM_TEMPLATES; t++) {
+    /* A repeated template would make the lookup lossy and silently drop
+     * counts, so assert distinctness rather than trust the transcription. */
+    assert(nonp_template_of_window[nonp_templates[t]] == -1);
+    nonp_template_of_window[nonp_templates[t]] = (short)t;
+  }
+  nonp_lookup_ready = true;
+}
+
 bool nonperiodic(long double *value, unsigned long *hash, PRG gen, int *param,
                  double *real_param, bool debug) {
   (void)real_param;
@@ -72,6 +99,7 @@ bool nonperiodic(long double *value, unsigned long *hash, PRG gen, int *param,
   if (M < NONP_TEMPLATE_LEN + 1) {
     return false;
   }
+  nonp_build_lookup();
 
   double m_d = (double)NONP_TEMPLATE_LEN;
   double mu = ((double)M - m_d + 1.0) / pow(2.0, m_d);
@@ -123,20 +151,20 @@ bool nonperiodic(long double *value, unsigned long *hash, PRG gen, int *param,
        *
        * Freshness is held as the position of each template's last match rather
        * than a counter advanced on every bit: the counter form needed a
-       * 148-way loop per bit, which doubled the cost of the most expensive
-       * per-bit test in the suite. next_ok[t] is the first position at which
+       * 148-way loop per bit. next_ok[t] is the first position at which
        * template t may match again, and it counts every consumed bit including
        * those that fill the initial window, so position 0 of each block is
        * eligible. */
       if (bits_in_window < NONP_TEMPLATE_LEN) {
         continue;
       }
-      for (int t = 0; t < NONP_NUM_TEMPLATES; t++) {
-        if (pos >= next_ok[t] && window == (unsigned int)nonp_templates[t]) {
-          W[t]++;
-          /* non-overlapping: NONP_TEMPLATE_LEN fresh bits before the next */
-          next_ok[t] = pos + NONP_TEMPLATE_LEN;
-        }
+      /* At most one template equals this window, so the lookup replaces the
+       * scan over all 148 without changing which matches are counted. */
+      int t = nonp_template_of_window[window];
+      if (t >= 0 && pos >= next_ok[t]) {
+        W[t]++;
+        /* non-overlapping: NONP_TEMPLATE_LEN fresh bits before the next */
+        next_ok[t] = pos + NONP_TEMPLATE_LEN;
       }
     }
 

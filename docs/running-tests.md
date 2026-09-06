@@ -9,6 +9,30 @@ make -C robust check
 
 Commands run from the repository root unless a subshell says otherwise.
 
+## Building for speed, and installing
+
+The Makefile builds with `-fsanitize=address`, which is roughly ten times
+slower. For long runs override `FLAGS` on the command line rather than editing
+the file, so nothing tracked changes:
+
+```bash
+make -C robust FLAGS="-O2 -I /usr/local/include -L /usr/local/lib -lgsl -lgslcblas -lm -lgmp"
+```
+
+On Apple Silicon use `/opt/homebrew` in place of `/usr/local` there.
+
+`make -C robust install` copies `rtest` and the battery scripts into
+`/usr/local/bin` using `sudo`. Nothing in this guide needs it, because every
+command below either runs `./rtest` from inside `robust/` or goes through the
+Python scripts. It matters for one thing: the upstream `rtest1m.sh` to
+`rtest10g.sh` batteries call `rtest` by bare name, so they only work after
+installing, or when run from inside `robust/` with `.` on the `PATH`.
+
+`make -C robust uninstall` removes `rtest` and the upstream batteries, but
+**not** `rtest_expansion.sh`: its `rm` glob is `rtest*m.sh`, which the added
+script's name does not match. Delete that one by hand, or see the note in
+`CHANGES-vs-upstream.md`.
+
 ## Test your own generator
 
 You need two files:
@@ -105,6 +129,12 @@ strongest result:
 python3 scripts/run_maximal_p_sweep.py --campaign mytest \
     --generator-dir /path/to/generators --etalon etalon.bin --tests 37
 ```
+
+Pass `--ksexact` to this script, or to `run_all_experiments.py`, to select the
+exact GMP backend (`-k`) for every run. It is slower, and it is the way to
+avoid the underflow described in `reading-results.md`.
+`reproducibility/README.md` explains the run statuses these scripts record and
+the per-test input budget.
 ## Look at the curves for one test
 
 To see what a test is actually doing:

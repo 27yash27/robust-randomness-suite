@@ -29,6 +29,12 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def xml_escape(text) -> str:
+    """Make a string safe inside an SVG text node."""
+    return (str(text).replace("&", "&amp;").replace("<", "&lt;")
+            .replace(">", "&gt;").replace('"', "&quot;"))
+
+
 def read_values(path: Path) -> list[float]:
     values: list[float] = []
     with path.open("r", encoding="ascii") as f:
@@ -82,9 +88,9 @@ def main() -> int:
 
     svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="{WIDTH}" height="{HEIGHT}" viewBox="0 0 {WIDTH} {HEIGHT}">
   <rect width="100%" height="100%" fill="#f6f4ef" />
-  <text x="{MARGIN}" y="34" font-family="Menlo, Monaco, monospace" font-size="22" fill="#1b1b1b">{args.title}</text>
-  <text x="{MARGIN}" y="58" font-family="Menlo, Monaco, monospace" font-size="14" fill="#444">etal: {etal_path.name}</text>
-  <text x="{MARGIN}" y="78" font-family="Menlo, Monaco, monospace" font-size="14" fill="#444">test: {test_path.name}</text>
+  <text x="{MARGIN}" y="34" font-family="Menlo, Monaco, monospace" font-size="22" fill="#1b1b1b">{xml_escape(args.title)}</text>
+  <text x="{MARGIN}" y="58" font-family="Menlo, Monaco, monospace" font-size="14" fill="#444">etal: {xml_escape(etal_path.name)}</text>
+  <text x="{MARGIN}" y="78" font-family="Menlo, Monaco, monospace" font-size="14" fill="#444">test: {xml_escape(test_path.name)}</text>
 
   <line x1="{MARGIN}" y1="{HEIGHT - MARGIN}" x2="{WIDTH - MARGIN}" y2="{HEIGHT - MARGIN}" stroke="#444" stroke-width="1.5"/>
   <line x1="{MARGIN}" y1="{MARGIN}" x2="{MARGIN}" y2="{HEIGHT - MARGIN}" stroke="#444" stroke-width="1.5"/>
@@ -103,7 +109,9 @@ def main() -> int:
   <text x="{WIDTH - 98}" y="46" font-family="Menlo, Monaco, monospace" font-size="12" fill="#333">test</text>
 </svg>
 """
-    out_path.write_text(svg, encoding="ascii")
+    # utf-8, not ascii: the filenames above are echoed into the SVG, and an
+    # accented one would otherwise raise UnicodeEncodeError instead of drawing.
+    out_path.write_text(svg, encoding="utf-8")
     print(out_path)
     return 0
 

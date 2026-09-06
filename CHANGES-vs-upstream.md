@@ -6,17 +6,22 @@ at commit `6ae81dcec44d5cbe46c7bc58620c275a7cfa3c1d`.
 Re-derive this comparison at any time with
 `tools/check-upstream-provenance.sh`, which clones that revision and reports,
 for every tracked file, whether it is identical to upstream, modified, or new.
-It currently reports **113 identical, 4 modified, 26 new**, and exits non-zero
-if the modified set ever stops matching the one recorded below. Licensing
-consequences of that split are in `LICENSING.md`. Comparisons below are
-against that revision, so they stay checkable as upstream moves.
+It currently reports **113 identical, 4 modified, 29 new**, and exits non-zero
+if the modified set, or either count, stops matching what is recorded here.
+Licensing consequences of that split are in `LICENSING.md`. Comparisons below
+are against that revision, so they stay checkable as upstream moves.
 
 This suite is Alexander Shen's [`rtest`](https://github.com/alexander-shen/rtest)
 plus an expansion of **20 new test statistics (numbers 22-41)**. Everything else
-is upstream and byte-for-byte unmodified. The four modified files below contain
-additions only, in upstream's own formatting; nothing was reflowed or
-reindented. This file is the complete list of
-what is new or changed, to make review against upstream straightforward.
+is upstream and byte-for-byte unmodified.
+
+The four modified files are additions in upstream's own formatting; nothing was
+reflowed or reindented. Measured against upstream they are `test_func.h`
++60/-0, `test_func.c` +21/-1, `robust/Makefile` +9/-2 and `README.md`, which
+replaces upstream's. The three removed lines are not deletions of content: each
+is an existing line re-emitted with an item appended, and all three are listed
+individually below. This file is the complete list of what is new or changed,
+to make review against upstream straightforward.
 
 ## New test files (tests 22-41)
 
@@ -55,12 +60,14 @@ imply these are ports. See `robust/doc/expansion-notes.txt`.
 ## Modified from upstream (only to register the 20 new tests)
 
 - `robust/test_func.h` - 20 forward declarations added, in upstream's style.
-  Nothing else in the file differs: 60 changed lines, all additions.
-- `robust/test_func.c`, 20 entries added to `functions_list[]`, plus the comma
-  the previously last entry needed. 22 changed lines, all additions.
-- `robust/Makefile`, the 20 new files appended to `TESTS_C`;
-  `rtest_expansion.sh` added to `SCRIPTS` so `make install` installs it;
-  a `check` target added that runs `check.sh`.
+  Nothing else in the file differs: +60 lines, no line removed.
+- `robust/test_func.c`, 20 entries added to `functions_list[]` (+21), and the
+  previously last entry re-emitted with the trailing comma the new entries
+  require (-1). That replaced line is the file's only non-addition.
+- `robust/Makefile` (+9/-2), the 20 new files appended to `TESTS_C` and
+  `rtest_expansion.sh` appended to `SCRIPTS` so `make install` installs it -
+  those two list assignments are the two replaced lines - plus a new `check`
+  target that runs `check.sh`.
 
 ## Added tooling and docs (not part of upstream)
 
@@ -74,6 +81,10 @@ imply these are ports. See `robust/doc/expansion-notes.txt`.
   built by `make test-nonperiodic-boundary` and run as part of `make check`.
 - `robust/doc/expansion-notes.txt`, documentation of the expansion.
 - `README.md`, this suite's README. Shen's original is kept as `README-upstream.md`.
+- `docs/`, the detail the README points to: `running-tests.md`,
+  `reading-results.md` and `validation.md`.
+- `tools/check-upstream-provenance.sh`, which re-derives this file's comparison.
+- `LICENSING.md`, the component-by-component licence position.
 - `CHANGES-vs-upstream.md`, this file.
 
 ## Fixed in this expansion
@@ -110,6 +121,18 @@ imply these are ports. See `robust/doc/expansion-notes.txt`.
   ```
   rtest -x -f tested.bin -e etalon.bin -p 20 -q 20 -d 148 -n 2000 -t 36 -r 1
   ```
+
+  The same statistic was later made O(1) per bit instead of O(148). The 148
+  templates are distinct 9-bit values, so at most one can equal the sliding
+  window; a 512-entry reverse lookup replaces the scan over all templates at
+  every bit. This is a speed change only, and was checked rather than assumed:
+  on the fixture above, all 148 coordinates are identical before and after at
+  both `-n 2000` and `-n 50000`, and the boundary regression still passes at
+  every offset. Measured on the same machine, `-n 50000` went from 4.29 s to
+  0.33 s of user time on an `-O2` build (17.9 s to 0.54 s on the default
+  sanitizer build). The lookup asserts that no template repeats, so a
+  transcription error in the table fails loudly instead of silently dropping
+  counts.
 
 ## Issues found in upstream files (reported, not changed)
 
@@ -157,7 +180,18 @@ so they are left alone here and listed for him to decide on.
    executables; libraries are in `/usr/local/lib`. On Apple Silicon a
    `LIBRARY_PATH` export hides this, and on Linux the system paths do. On an
    Intel Mac, the configuration the line was written for, linking fails. The
-   fix upstream is `-L /usr/local/lib`. Worth reporting to A. Shen.
+   fix upstream is `-L /usr/local/lib`. Worth reporting to A. Shen. The build
+   here still emits `ld: warning: search path '/usr/local/bin/' not found`,
+   which is this line and nothing else.
+
+6. **`make uninstall` does not remove `rtest_expansion.sh`.** `install` copies
+   everything in `SCRIPTS`, and this expansion appends `rtest_expansion.sh` to
+   that list, but `uninstall` deletes `/usr/local/bin/rtest*m.sh` by glob and
+   that name does not match. So an installed `rtest_expansion.sh` is left
+   behind. The asymmetry is in Shen's `uninstall` line, which is unchanged
+   here, but it is this expansion's addition to `SCRIPTS` that exposes it: a
+   glob of `rtest*.sh` would cover both. Left for him to decide, and noted in
+   `docs/running-tests.md` so nobody is surprised by the leftover file.
 
 ## Not modified
 
