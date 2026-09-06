@@ -18,11 +18,30 @@ Small p-values are evidence against the randomness model. A large p-value does
 not certify a generator, and the numerical limits in step 5 are real; read them
 before drawing conclusions.
 
-41 tests, covering Diehard and most of NIST STS. Yash Belani added 20 tests
-(numbers 22 to 41) to Alexander Shen's original
-[`rtest`](https://github.com/alexander-shen/rtest).
-Theory: [lirmm-03065320](https://hal.archives-ouvertes.fr/lirmm-03065320/),
-[lirmm-03371151](https://hal.archives-ouvertes.fr/lirmm-03371151/).
+## Provenance and credits
+
+The method and the original suite are not mine.
+
+- **The robust two-sample construction** is the work of **Alexander Shen** and
+  **Andrey Romashchenko** (LIRMM, CNRS / Univ. Montpellier). Shen's own
+  `robust/doc/tests-description.tex` cites them jointly for the method, under
+  the key `shen-romashchenko-robust`. Papers:
+  [lirmm-03065320](https://hal.archives-ouvertes.fr/lirmm-03065320/),
+  [lirmm-03371151](https://hal.archives-ouvertes.fr/lirmm-03371151/).
+- **Theirs:** the driver (`robust/rtest.c`), the generator layer, the
+  Kolmogorov-Smirnov engine, tests 0 to 21, and every supporting directory.
+  113 of the files here are byte-identical to
+  [`alexander-shen/rtest`](https://github.com/alexander-shen/rtest) at
+  `6ae81dce`; Shen's own description is preserved as `README-upstream.md`.
+- **Mine (Yash Belani):** tests 22 to 41, the tooling in `scripts/`, the
+  reproducibility package, and this README.
+
+This repository was created by copying upstream rather than by forking, so
+`git blame` attributes Shen's original files to my import commit rather than to
+him. `CHANGES-vs-upstream.md` lists exactly which files differ, and
+`tools/check-upstream-provenance.sh` re-derives that list against `6ae81dce`.
+
+41 tests in total, covering Diehard and most of NIST STS.
 
 ---
 
@@ -164,6 +183,12 @@ upstream bugs, and you should read it before quoting a number.
 
 `docs/running-tests.md` covers running one test, the full battery, the sample
 size sweep and the curve comparison for a single test, with the flag reference.
+
+One thing to know before you use it: `robust/rtest_expansion.sh` runs all twenty
+added tests at the smallest size in the catalog, so it is a **smoke test**. A
+two-sample KS test cannot return a p-value below `1/C(2p,p)`, which at those
+sizes is 0.167 to 0.004, so the battery confirms every test runs but cannot
+report a detection. Detection comes from step 4 or from the sweep.
 
 ---
 

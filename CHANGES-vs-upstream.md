@@ -43,6 +43,15 @@ what is new or changed, to make review against upstream straightforward.
 | `robust/test_approximate_entropy.c` | 40 | Approximate Entropy |
 | `robust/test_universal.c` | 41 | Maurer's Universal |
 
+Tests 29 and 30 are marked adapted because they are not Dieharder's statistics,
+only the same idea. Dieharder's DAB DCT takes 256-point DCTs of many blocks and
+looks at the maximum coefficient; test 29 takes low-frequency energy from one
+large DCT. Dieharder's DAB filtering is a different construction again; test 30
+applies a fixed 8-tap zero-sum filter to non-overlapping blocks. Under the
+two-sample construction the exact statistic does not have to match a published
+one, since both samples go through the same code, but the tables should not
+imply these are ports. See `robust/doc/expansion-notes.txt`.
+
 ## Modified from upstream (only to register the 20 new tests)
 
 - `robust/test_func.h` - 20 forward declarations added, in upstream's style.

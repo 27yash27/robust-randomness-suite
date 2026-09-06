@@ -85,10 +85,10 @@ bool nonperiodic(long double *value, unsigned long *hash, PRG gen, int *param,
   double chi2[NONP_NUM_TEMPLATES] = {0.0};
   /* Per-block, per-template state (reset at the start of each block). */
   long W[NONP_NUM_TEMPLATES];
-  /* "bits seen since last match (or block start) for template t". A match is
-   * possible only once bits_since[t] >= NONP_TEMPLATE_LEN, which enforces
-   * the non-overlapping rule independently per template. */
-  short bits_since[NONP_NUM_TEMPLATES];
+  /* First position at which template t may match again, which enforces the
+   * non-overlapping rule independently per template in O(1) per match rather
+   * than O(templates) per bit. */
+  long next_ok[NONP_NUM_TEMPLATES];
 
   /* 32-bit fetch buffer drives the bit stream. */
   unsigned int bit_buf = 0;
@@ -97,7 +97,9 @@ bool nonperiodic(long double *value, unsigned long *hash, PRG gen, int *param,
   for (int blk = 0; blk < NONP_NUM_BLOCKS; blk++) {
     for (int t = 0; t < NONP_NUM_TEMPLATES; t++) {
       W[t] = 0;
-      bits_since[t] = 0;
+      /* the window is complete at position NONP_TEMPLATE_LEN-1, which is the
+       * earliest any template can match */
+      next_ok[t] = NONP_TEMPLATE_LEN - 1;
     }
     unsigned int window = 0U;
     int bits_in_window = 0;
@@ -115,27 +117,25 @@ bool nonperiodic(long double *value, unsigned long *hash, PRG gen, int *param,
       if (bits_in_window < NONP_TEMPLATE_LEN) {
         bits_in_window++;
       }
-      /* Freshness counts every bit consumed, including the bits that fill
-       * the initial window. Incrementing only after the window is full would
-       * leave bits_since[] NONP_TEMPLATE_LEN-1 short, making the first
-       * NONP_TEMPLATE_LEN-1 candidate positions of every block ineligible. */
-      for (int t = 0; t < NONP_NUM_TEMPLATES; t++) {
-        if (bits_since[t] < NONP_TEMPLATE_LEN) {
-          bits_since[t]++;
-        }
-      }
       /* A match needs a fully populated window as well as enough fresh bits
        * for this template. The two conditions differ early in a block and
-       * after any match, so we can't collapse them. */
+       * after any match, so we can't collapse them.
+       *
+       * Freshness is held as the position of each template's last match rather
+       * than a counter advanced on every bit: the counter form needed a
+       * 148-way loop per bit, which doubled the cost of the most expensive
+       * per-bit test in the suite. next_ok[t] is the first position at which
+       * template t may match again, and it counts every consumed bit including
+       * those that fill the initial window, so position 0 of each block is
+       * eligible. */
       if (bits_in_window < NONP_TEMPLATE_LEN) {
         continue;
       }
       for (int t = 0; t < NONP_NUM_TEMPLATES; t++) {
-        if (bits_since[t] >= NONP_TEMPLATE_LEN &&
-            window == (unsigned int)nonp_templates[t]) {
+        if (pos >= next_ok[t] && window == (unsigned int)nonp_templates[t]) {
           W[t]++;
-          bits_since[t] = 0; /* non-overlapping: need NONP_TEMPLATE_LEN
-                                fresh bits before the next match */
+          /* non-overlapping: NONP_TEMPLATE_LEN fresh bits before the next */
+          next_ok[t] = pos + NONP_TEMPLATE_LEN;
         }
       }
     }

@@ -40,8 +40,8 @@ as noted in section 6 below. Each new test and its origin:
   26  Squeeze                          Diehard + Dieharder    test_squeeze.c
   27  OPERM5                           Diehard + Dieharder    test_operm5.c
   28  Craps                            Diehard + Dieharder    test_craps.c
-  29  DAB DCT                          Dieharder              test_dab_dct.c
-  30  DAB Filtering                    Dieharder              test_dab_filtering.c
+  29  DAB DCT (adapted)                Dieharder              test_dab_dct.c
+  30  DAB Filtering (adapted)          Dieharder              test_dab_filtering.c
   31  Linear Complexity                NIST + Dieharder       test_linear_complexity.c
   32  Random Excursions                NIST                   test_random_excursions.c
   33  Random Excursions Variant        NIST                   test_random_excursions_variant.c
@@ -53,6 +53,15 @@ as noted in section 6 below. Each new test and its origin:
   39  Cumulative Sums                  NIST                   test_cusum.c
   40  Approximate Entropy              NIST                   test_approximate_entropy.c
   41  Maurer's Universal               NIST                   test_universal.c
+
+Tests 29 and 30 are adaptations, not ports. Dieharder's DAB DCT takes 256-point
+DCTs of many blocks and reports the maximum coefficient; ours takes low-frequency
+energy from a single large DCT. Dieharder's DAB filtering is a different
+construction; ours applies a fixed 8-tap zero-sum filter to non-overlapping
+blocks. This is acceptable here because the robust scheme compares a statistic
+against itself: both samples are produced by the same code, so the statistic
+need not reproduce a published one to give a valid p-value. It does mean results
+from these two are not comparable to Dieharder's.
 
 ("Diehard" is Marsaglia's battery, "Dieharder" R. G. Brown's extension, "NIST"
 the NIST Statistical Test Suite, SP 800-22.)

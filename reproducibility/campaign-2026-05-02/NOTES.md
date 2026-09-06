@@ -59,8 +59,40 @@ The headline survives, because it never depended on those four: all six
 defective generators were detected by other tests. But any statement about the
 campaign should say ten tests were run and six produced usable numbers.
 
-Resolving this means rerunning those 36 rows with `--ksexact`. That has not been
-done.
+**No conclusion depends on those four tests.** Every detection came from the six
+unaffected tests, and the three controls are clean:
+
+| Generator | detections | from which tests |
+|---|---:|---|
+| Blum-Blum-Shub *(control)* | 0 | - |
+| Linear Congruential *(control)* | 0 | - |
+| Micali-Schnorr *(control)* | 0 | - |
+| Cubic Congruential | 3 | t22 t24 t26 |
+| G-using-SHA-1 | 6 | t22 t23 t24 t26 t27 t28 |
+| Modular Exponentiation | 2 | t22 t24 |
+| Quadratic Congruential I | 2 | t22 t24 |
+| Quadratic Congruential II | 3 | t22 t24 t26 |
+| XOR | 5 | t22 t23 t24 t27 t28 |
+
+Detections originating in tests 25, 29, 30 or 31: **zero**. False positives on
+the three controls: **zero**. So the saturation costs four tests and no
+conclusions.
+
+### The cause was checked, not inferred
+
+The correlation is total, but correlation is not the mechanism, so affected
+settings were rerun on both backends. `saturation-check/` holds the runs, with
+raw logs:
+
+| Test | samples | default backend | exact backend (`-k`) |
+|---|---:|---|---|
+| 29 | 3000 | 1.000000000000000000 | 0.872391667779662372 |
+| 30 | 3000 | 1.000000000000000000 | 0.564674346019481077 |
+
+The default routine returns exactly 1.0 where the exact routine returns an
+ordinary p-value, which is the `psmirnov2x` underflow and nothing about the
+data. Replacing all 36 rows means rerunning them with `--ksexact`; that has not
+been done.
 
 ## Known defect in the tooling that produced this, and what was checked
 

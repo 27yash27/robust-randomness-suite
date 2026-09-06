@@ -1,0 +1,5 @@
+test,samples,backend,p_value_raw,command
+29,3000,default,1.000000000000000000,"rtest -x  -f <gen> -e <etalon-1GB-prefix> -p 3000 -q 3000 -d 1 -n 4096 -t 29  -r 1"
+29,3000,exact,0.872391667779662372,"rtest -x -k -f <gen> -e <etalon-1GB-prefix> -p 3000 -q 3000 -d 1 -n 4096 -t 29  -r 1"
+30,3000,default,1.000000000000000000,"rtest -x  -f <gen> -e <etalon-1GB-prefix> -p 3000 -q 3000 -d 1 -n 4096 -t 30  -r 1"
+30,3000,exact,0.564674346019481077,"rtest -x -k -f <gen> -e <etalon-1GB-prefix> -p 3000 -q 3000 -d 1 -n 4096 -t 30  -r 1"

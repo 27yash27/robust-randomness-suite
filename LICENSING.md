@@ -12,7 +12,7 @@ the decisive permission is not ours to give. See "What is still needed".
 
 | Component | Where | Origin | Terms |
 |---|---|---|---|
-| The `rtest` framework: driver, generator layer, KS engine, tests 0-21, and every supporting directory | 113 files, byte-identical to upstream | Alexander Shen, LIRMM / CNRS / Univ. Montpellier | **No license declared upstream.** See below. |
+| The `rtest` framework: driver, generator layer, KS engine, tests 0-21, and every supporting directory | 113 files, byte-identical to upstream | Alexander Shen (method with Andrey Romashchenko), LIRMM / CNRS / Univ. Montpellier | **No license declared upstream.** See below. |
 | Registration of the 20 new tests | `robust/test_func.c`, `robust/test_func.h`, `robust/Makefile` | Shen's files, edited here | follows the framework |
 | Tests 22-28, 34 | `test_dna.c`, `test_count1s_*.c`, `test_parking.c`, `test_squeeze.c`, `test_operm5.c`, `test_craps.c`, `test_3d_spheres.c` | **Diehard and Dieharder** both, per `robust/doc/expansion-notes.txt` | **GPL**, through the Dieharder side. |
 | Tests 29, 30, 35 | `test_dab_dct.c`, `test_dab_filtering.c`, `test_gcd.c` | **Dieharder** (R. G. Brown) | **GPL.** |
@@ -60,8 +60,10 @@ byte-identical to upstream.
 
 ## Attribution
 
-- The robust two-sample construction and the original `rtest` suite are by
-  **Alexander Shen** (LIRMM, CNRS / Univ. Montpellier). His description
+- The robust two-sample construction is by **Alexander Shen** and **Andrey
+  Romashchenko** (LIRMM, CNRS / Univ. Montpellier), cited jointly for the method
+  in Shen's own `robust/doc/tests-description.tex`. The `rtest` implementation
+  is Shen's. His description
   is preserved verbatim as `README-upstream.md`. Papers:
   [lirmm-03065320](https://hal.archives-ouvertes.fr/lirmm-03065320/),
   [lirmm-03371151](https://hal.archives-ouvertes.fr/lirmm-03371151/).

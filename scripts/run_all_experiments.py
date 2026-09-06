@@ -374,6 +374,18 @@ def main():
     print(f"{'test':<6}{'title':<34}{'random':>8}{'structured':>12}")
     for tnum, title, a_ok, b_ok in summary:
         print(f"{tnum:<6}{title[:32]:<34}{a_ok:>8}{b_ok:>12}")
+
+    # Shen asked for a family of five experiments per test. Check it, rather
+    # than assume the catalog still supplies five sizes.
+    want = min(5, a.max_sizes)
+    thin = [(t, ti, x, y) for t, ti, x, y in summary if x < want or y < want]
+    if thin:
+        print(f"\n{len(thin)} test(s) produced fewer than {want} curves for a "
+              f"fixture:")
+        for tnum, title, x, y in thin:
+            print(f"   test {tnum} {title[:30]:<32} random={x} structured={y}")
+        print("   A count below the catalog's size list means runs were declined "
+              "or undersized; see numeric_status in results.csv.")
     print(f"\noutputs: {out}")
     # Real problems, as opposed to a statistic declining or wanting more data.
     hard = [r for r in all_statuses
