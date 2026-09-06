@@ -173,6 +173,8 @@ the right one to use going forward, but its numbers will not match that row.
 Reproduce the check with, from a built STS directory:
 
 ```bash
+rm -f bad_generator_output.bin                  # assess appends; a stale file
+                                                # would silently extend
 printf "1\n1\n0\n80\n" | ./assess 1000000     # generator 1, 80 x 1 Mbit = 10 MB
 shasum -a 256 bad_generator_output.bin
 ```

@@ -33,6 +33,35 @@ absent, so the counting error corrected in `robust/test_nonperiodic.c` (see
 | Quadratic Congruential II | 3 |
 | XOR | 5 |
 
+## Four of the ten tests returned nothing usable
+
+Counted on the committed CSV:
+
+```
+rows in campaign                       90
+rows run at max_p > 2500               36
+  of those, objective exactly 1.0      36
+rows with objective exactly 1.0        36
+  of those, at max_p > 2500            36
+```
+
+Thirty-six of thirty-six. These are **tests 25, 29, 30 and 31 across all nine
+generators**, at `max_p` 5207 and 10000, on the default KS routine: the
+`psmirnov2x` underflow documented in `../../CHANGES-vs-upstream.md`, which
+returns exactly 1.0 above roughly 2500 samples whatever the data says.
+
+**Those four tests contributed no usable result.** The campaign therefore rests
+on six tests, not ten, and the controls' clean sheet on tests 25, 29, 30 and 31
+carries no information: a value of exactly 1.0 there is an artefact of the
+arithmetic, not evidence of a non-detection.
+
+The headline survives, because it never depended on those four: all six
+defective generators were detected by other tests. But any statement about the
+campaign should say ten tests were run and six produced usable numbers.
+
+Resolving this means rerunning those 36 rows with `--ksexact`. That has not been
+done.
+
 ## Known defect in the tooling that produced this, and what was checked
 
 The old sweep matched numbers in `rtest` output with a pattern that also

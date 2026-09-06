@@ -7,7 +7,7 @@ beats the 1e-10 "real claim" threshold.
 Strategy:
   Phase 1 (Doubling)   - start at the catalog's smallest p (overridable),
                          double until rtest fails or the run yields p-value 0
-                         (treated as an EOF artifact, not a statistical signal).
+                         (recorded as censored_zero and the sweep continues; end of input is read from rtest's own message instead).
   Phase 2 (Bisection)  - binary-search between the last good p and the first
                          bad p to pin the file's true ceiling.
   Phase 3 (Final run)  - re-run rtest at the located max_p into a clean dir

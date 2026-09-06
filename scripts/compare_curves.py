@@ -52,6 +52,12 @@ def parse_args():
     return p.parse_args()
 
 
+def xml_escape(text):
+    """Make a string safe inside an SVG text node."""
+    return (str(text).replace("&", "&amp;").replace("<", "&lt;")
+            .replace(">", "&gt;").replace('"', "&quot;"))
+
+
 def read_values(path):
     vals = []
     with path.open() as fh:
@@ -132,6 +138,8 @@ def build_svg(title, subtitle, panels):
         py = MARGIN + 40 + row * PANEL_H
         x0, y0 = px + 26, py + PANEL_H - 34
 
+        if not tested or not etalon:
+            continue          # nothing to draw for this panel
         lo = min(tested[0], etalon[0])
         hi = max(tested[-1], etalon[-1])
 
@@ -231,8 +239,8 @@ def main():
     if not panels:
         sys.exit("no run succeeded -- see the messages above")
 
-    title = f"Test {args.test}: {cfg.title}"
-    subtitle = (f"{args.file.name} vs etalon {args.etalon.name}, "
+    title = f"Test {args.test}: {xml_escape(cfg.title)}"
+    subtitle = (f"{xml_escape(args.file.name)} vs etalon {xml_escape(args.etalon.name)}, "
                 f"coordinate {coord} of {cfg.dimension}"
                 f"{'' if not args.no_xor else ', direct comparison (no XOR)'}")
     out_path.write_text(build_svg(title, subtitle, panels))

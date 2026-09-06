@@ -13,7 +13,9 @@ against that revision, so they stay checkable as upstream moves.
 
 This suite is Alexander Shen's [`rtest`](https://github.com/alexander-shen/rtest)
 plus an expansion of **20 new test statistics (numbers 22-41)**. Everything else
-is upstream and byte-for-byte unmodified, so this file is the complete list of
+is upstream and byte-for-byte unmodified. The four modified files below contain
+additions only, in upstream's own formatting; nothing was reflowed or
+reindented. This file is the complete list of
 what is new or changed, to make review against upstream straightforward.
 
 ## New test files (tests 22-41)
@@ -27,8 +29,8 @@ what is new or changed, to make review against upstream straightforward.
 | `robust/test_squeeze.c` | 26 | Squeeze |
 | `robust/test_operm5.c` | 27 | OPERM5 |
 | `robust/test_craps.c` | 28 | Craps |
-| `robust/test_dab_dct.c` | 29 | DAB DCT |
-| `robust/test_dab_filtering.c` | 30 | DAB Filtering |
+| `robust/test_dab_dct.c` | 29 | DAB DCT (adapted, see note) |
+| `robust/test_dab_filtering.c` | 30 | DAB Filtering (adapted, see note) |
 | `robust/test_linear_complexity.c` | 31 | Linear Complexity |
 | `robust/test_random_excursions.c` | 32 | Random Excursions |
 | `robust/test_random_excursions_variant.c` | 33 | Random Excursions Variant |
@@ -43,8 +45,10 @@ what is new or changed, to make review against upstream straightforward.
 
 ## Modified from upstream (only to register the 20 new tests)
 
-- `robust/test_func.h`, 20 forward declarations added.
-- `robust/test_func.c`, 20 entries added to `functions_list[]`.
+- `robust/test_func.h` - 20 forward declarations added, in upstream's style.
+  Nothing else in the file differs: 60 changed lines, all additions.
+- `robust/test_func.c`, 20 entries added to `functions_list[]`, plus the comma
+  the previously last entry needed. 22 changed lines, all additions.
 - `robust/Makefile`, the 20 new files appended to `TESTS_C`;
   `rtest_expansion.sh` added to `SCRIPTS` so `make install` installs it;
   a `check` target added that runs `check.sh`.
@@ -133,8 +137,18 @@ so they are left alone here and listed for him to decide on.
    Harmless in practice: the Makefile links `ks2mp.c` instead, so this file is
    not compiled into `rtest`.
 
-5. **`robust/Makefile` builds with `-fsanitize=address`** and hardcodes
-   `/usr/local` include and library paths.
+5. **`robust/Makefile` builds with `-fsanitize=address`**, and its library
+   search path is wrong:
+
+   ```
+   FLAGS = -I /usr/local/include -L /usr/local/bin/ -lgsl ...
+   ```
+
+   `-L` names a directory to search for libraries, but `/usr/local/bin` holds
+   executables; libraries are in `/usr/local/lib`. On Apple Silicon a
+   `LIBRARY_PATH` export hides this, and on Linux the system paths do. On an
+   Intel Mac, the configuration the line was written for, linking fails. The
+   fix upstream is `-L /usr/local/lib`. Worth reporting to A. Shen.
 
 ## Not modified
 

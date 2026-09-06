@@ -17,7 +17,7 @@
  * and descending runs of 32-bit integers rather than bit-level transitions.
  *
  * NIST recommends running monobit (test 20) first; if the proportion of 1s
- * is too far from 0.5 (|pi - 0.5| > 2/sqrt(n)), the chi-square approximation
+ * is too far from 0.5 (|pi - 0.5| > 2/sqrt(n)), the normal approximation
  * breaks down and the test returns p = 0.
  */
 

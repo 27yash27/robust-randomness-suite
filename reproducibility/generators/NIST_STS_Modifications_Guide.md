@@ -14,6 +14,31 @@ downstream randomness testing.
 
 ---
 
+## Bit order, and why it does not invalidate the tests
+
+The packing routine added to `src/utilities.c` writes eight bits per output
+byte with the **first bit in the most significant position**:
+
+```c
+packed_byte = (packed_byte << 1) | (epsilon[i] & 0x01);
+```
+
+A partial final byte is left-shifted, so its padding sits in the low bits.
+There is no 32-bit word step in this routine.
+
+`rtest` reads the other way. `g_int32_lsb()` in `robust/generators.c` assembles
+four bytes into a word with the first byte in the low eight bits, and the tests
+then take bits from that word starting at the least significant. **So within
+each byte, the suite consumes the bits in the reverse of the order NIST emitted
+them.**
+
+That is not a defect. Bit reversal within a byte is a fixed permutation applied
+identically to both compared samples, so the two-sample construction is
+unaffected and the p-values remain valid. It does mean the campaign tested a
+bit-reversed view of each generator, so its numbers are not directly comparable
+to published NIST STS results for the same generators. Anyone comparing against
+published STS output should account for this.
+
 ## Overview of Changes
 
 Three C source files and one Makefile are modified from the original NIST STS

@@ -32,8 +32,17 @@ GMP, GSL and a C++ compiler, plus **Python 3.10 or later** for the scripts
 (standard library only, nothing to `pip install`).
 
 ```bash
-sudo apt-get install libgmp-dev libgsl-dev     # Debian/Ubuntu
-brew install gmp gsl                            # macOS
+sudo apt-get install libgmp-dev libgsl-dev      # Debian/Ubuntu
+```
+
+On macOS, a machine that has never built anything needs the Command Line Tools
+first. Without them there is no compiler, Homebrew cannot install, and the
+system `python3` is a stub that fails the same way:
+
+```bash
+xcode-select --install
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+brew install gmp gsl
 ```
 
 On Apple Silicon, set these before building, because the Makefile looks in
@@ -63,10 +72,22 @@ four checks passed; it is a build sanity check, not evidence that every
 statistic is correct.
 
 The Makefile builds with `-fsanitize=address`, which is about ten times slower.
-Remove it from `FLAGS` for long runs.
+For long runs override `FLAGS` on the command line rather than editing the file,
+so nothing tracked changes:
+
+```bash
+make -C robust FLAGS="-I /usr/local/include -L /usr/local/lib -lgsl -lgslcblas -lm -lgmp"
+```
+
+On Apple Silicon use `/opt/homebrew` in place of `/usr/local` there.
 
 **Every command in this README runs from the repository root.** The few that
 need a different directory say so and change into it themselves.
+
+`make -C robust install` copies `rtest` and the battery scripts into
+`/usr/local/bin` with `sudo`, and `uninstall` removes them. You do not need it
+for anything below, but the upstream `rtest*.sh` batteries expect `rtest` on the
+`PATH`, so they only work after installing or from inside `robust/`.
 
 ## 3. See it work, with no files of your own
 
@@ -122,151 +143,29 @@ Add `--ksexact` for the exact KS backend. `reproducibility/README.md` explains
 the statuses, the per-test input budget, how to rebuild the nine research
 generators, and what the preserved campaign does and does not establish.
 
+## 5. Read a result
+
+- **between 0.01 and 0.99**: that test found nothing at that sample size. It
+  does not certify the generator.
+- **very small, below about 1e-6**: evidence the test can tell your generator
+  from random.
+- **printed as zero**: below what the driver can show. Not a bound, and not a
+  measured detection.
+- **exactly 1.0**: legitimate at tiny sample sizes; above a few dozen samples
+  suspect the KS underflow.
+- **`oops, eof in generator`**: the files are too small for that test.
+
+A single p-value is not the answer: it is not monotone in the sample size, and
+the minimum over a sweep is biased low by the search. `docs/reading-results.md`
+covers the numerical limits, the platform-dependent underflow and the known
+upstream bugs, and you should read it before quoting a number.
+
+## 6. Test your own files
+
+`docs/running-tests.md` covers running one test, the full battery, the sample
+size sweep and the curve comparison for a single test, with the flag reference.
+
 ---
-
-## 5. Read the result
-
-- **Between 0.01 and 0.99**: that test found nothing. It does not certify the
-  generator; it means this statistic saw nothing at this sample size.
-- **Very small, say below 1e-6**: evidence that the test can tell your generator
-  from random. Smaller means stronger evidence. The campaign treated below
-  1e-10 as a detection.
-- **Exactly 1.0**: legitimate at very small sample sizes, where the discrete
-  KS distribution really does reach 1. At larger sample sizes it usually means
-  the p-value routine underflowed. See the note below.
-- **`oops, eof in generator`**: your files are too small for that test. Use
-  bigger ones or lower `-p` and `-q`.
-
-Two things that will bite you:
-
-- **The safe sample size depends on your platform.** The default p-value
-  routine works in `long double`, which is 8 bytes on Apple Silicon and 16
-  bytes with a wider exponent on x86-64. On Apple Silicon it underflows above
-  roughly 2500 samples and returns exactly 1.0 whatever the data says; on
-  x86-64 Linux it has been observed to agree with the exact routine at 3000
-  and beyond. Measure it on your own machine with `make check` and a few
-  spot comparisons against `-k`. `-k` selects the GMP backend, which avoids
-  this underflow and is slower; it is not free of every limit, as the next two
-  points describe.
-- **A p-value of exactly 1.0 is not automatically a bug.** At very small
-  sample sizes the discrete KS distribution genuinely reaches 1. Above a few
-  dozen samples, treat it as the underflow above until you have checked with
-  `-k`.
-- **Very small p-values are printed as zero.** The driver prints 18 decimal
-  places, so anything below 1e-18 comes out as `0.000000000000000000`, and the
-  default routine can print a small negative value instead through
-  cancellation. Both mean "smaller than can be shown here", not "no result",
-  and neither certifies a particular value. `-k` removes the cancellation but
-  not the 18-decimal output, and the exact routine reduces its own denominator
-  under 2^128, which can truncate a very small numerator to zero as well. Treat
-  such a point as "too small to report" rather than as a measured number.
-- **A single p-value is not the answer.** The p-value is not monotone in the
-  sample size, so a real signal can appear at one size and vanish at another.
-  Run several sizes and take the smallest value you see. That minimum is a
-  search summary over many sample sizes and coordinates, not a calibrated
-  p-value: it is biased low by the search itself. Fix the family of tests,
-  coordinates and sizes in advance and correct for multiplicity, or report the
-  minimum as exploratory and judge it against a small fixed threshold.
-
-## 6. Test your own generator
-
-You need two files:
-
-- **your generator's output**, raw bytes with no header. A few hundred MB suits
-  most tests; see the per-test budget in `reproducibility/README.md`.
-- **an etalon**, any fixed file at least as large. Its contents do not affect
-  validity, but they do affect the numbers, so keep the one you used if you want
-  to reproduce a result later.
-
-```bash
-head -c 300000000 /dev/urandom > etalon.bin
-```
-
-Then run one test. This one is NIST Runs, test 37:
-
-```bash
-(cd robust && ./rtest -x -f ../yourgen.bin -e ../etalon.bin \
-    -p 40 -q 40 -d 1 -n 100000 -t 37 -r 1)
-```
-
-It prints the KS p-value, one per coordinate.
-
-The flags:
-
-| Flag | Meaning |
-|------|---------|
-| `-x` | XOR mode. Always use it. |
-| `-f` | your generator file |
-| `-e` | the etalon file |
-| `-t` | which test, 0 to 41 |
-| `-d` | how many values that test returns |
-| `-n` | that test's size parameter, whose unit is test-dependent |
-| `-p` `-q` | the two sample sizes |
-| `-r 1` | run once. `-r 0` repeats until the data runs out. |
-| `-k` | the GMP backend: slower, and free of the underflow in step 5 |
-| `-m` | extra parameter, needed only by some tests (test 31 uses `-m 500`) |
-| `-o` | write the raw sample values to this directory, for plotting |
-| `-v` | verbose, prints what it is doing |
-
-**`-d` and `-n` are not free to choose.** Each test needs particular values,
-listed in `scripts/robust_test_catalog.py` and used automatically by the scripts
-in steps 3 and 4, so take them from there rather than guessing.
-
-## 7. Run a whole battery
-
-The battery scripts write next to their input, so run them from `robust/`:
-
-```bash
-(cd robust && ./rtest_expansion.sh ../yourgen.bin ../etalon.bin)   # tests 22-41
-(cd robust && ./rtest100m.sh ../yourgen.bin ../etalon.bin)         # tests 0, 1, 3-16
-```
-
-`rtest_expansion.sh` exits non-zero if any test fails to produce a p-value.
-The upstream batteries cover tests 0, 1 and 3 to 16 only. Test 2 is a
-debugging function, and **tests 17 to 21 have no battery**, so run those by
-hand with `rtest` if you need them.
-
-Results land in `yourgen.bin.expansion` and `yourgen.bin.test100m`.
-`rtest_expansion.sh` exits non-zero if a test fails to produce a p-value, but
-not when a statistic states its own reason for declining, which it records with
-that reason. On a 300 MB random input, expect tests 32 and 33 to decline with
-"too few cycles". Use
-`rtest1m.sh`, `rtest10m.sh`, `rtest100m.sh`, `rtest1g.sh` or `rtest10g.sh` to
-match your file's size.
-
-Watch the output suffix, it is inconsistent upstream. `rtest1m.sh` writes
-`.tst1m`, with no `e`. Every other battery writes `.test10m`, `.test100m`,
-`.test1g`, `.test10g`. If a result file seems to be missing, that is usually
-why.
-
-## 8. Sweep the sample size
-
-Do not just run once. This runs one test across a range of sizes and reports the
-strongest result:
-
-```bash
-python3 scripts/run_maximal_p_sweep.py --campaign mytest \
-    --generator-dir /path/to/generators --etalon etalon.bin --tests 37
-```
-
-## 9. Look at the curves for one test
-
-To see what a test is actually doing:
-
-```bash
-python3 scripts/compare_curves.py -t 37 -f yourgen.bin -e etalon.bin
-```
-
-This runs test 37 at five sample sizes and writes one SVG with a panel per run.
-Each panel draws the two distributions being compared.
-
-- **Curves lying on top of each other**: the test sees nothing.
-- **Curves pulling apart**: the test is distinguishing your generator from
-  random, and the p-value above the panel says how strongly.
-
-Options: `-t` any test from 22 to 41, `--sizes` for your own sample sizes,
-`--coord` to pick a coordinate on tests that return several values, `-o` for the
-output filename.
 
 ## What is in here
 
@@ -287,36 +186,14 @@ ent16/ general/ independent/ pipes/ readfile/ spectral_tests/ wav/
                  upstream utilities, not needed to run tests
 ```
 
-The twenty tests added on top of upstream:
-
-| # | Test | From | # | Test | From |
-|---|------|------|---|------|------|
-| 22 | DNA | Diehard | 32 | Random Excursions | NIST |
-| 23 | Count-the-1s (stream) | Diehard | 33 | Random Excursions Variant | NIST |
-| 24 | Count-the-1s (bytes) | Diehard | 34 | 3D Spheres | Diehard |
-| 25 | Parking Lot | Diehard | 35 | Marsaglia-Tsang GCD | Dieharder |
-| 26 | Squeeze | Diehard | 36 | Non-overlapping Template Matching | NIST |
-| 27 | OPERM5 | Diehard | 37 | Runs | NIST |
-| 28 | Craps | Diehard | 38 | Longest Run of Ones | NIST |
-| 29 | DAB DCT | Dieharder | 39 | Cumulative Sums | NIST |
-| 30 | DAB Filtering | Dieharder | 40 | Approximate Entropy | NIST |
-| 31 | Linear Complexity | NIST | 41 | Maurer's Universal | NIST |
+The twenty tests added on top of upstream are 22 to 41: the Diehard battery,
+most of NIST STS, and three from Dieharder. `CHANGES-vs-upstream.md` lists them
+with their sources and files.
 
 For more than this page: `robust/doc/expansion-notes.txt` for the new tests,
 `robust/doc/tests-description.tex` for tests 0-21, and `CHANGES-vs-upstream.md`
 for exactly which files differ from upstream and which known bugs live in which
 file.
-
-## Known bugs
-
-Both are in upstream files and are left unchanged here.
-
-1. `psmirnov2x` in `kolmogorov-smirnov/ksmirnov.c` underflows above about 2500
-   samples and returns a p-value of exactly 1.0. Use `-k`, or keep `-p` and `-q`
-   at 2000 or below.
-2. `test_p_value` in `robust/rtest.c` keeps both samples on the stack, so
-   high-dimension tests such as test 36 segfault silently above roughly
-   `-p 3400` on macOS and half that on Linux. Raise the stack limit first.
 
 ## Validation
 

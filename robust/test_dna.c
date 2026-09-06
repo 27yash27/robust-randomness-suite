@@ -20,7 +20,7 @@
 #define NUM_POSITIONS 31 // 32 - 2 + 1 = 31 possible positions for 2 bits
 #define BYTES_PER_WORD                                                         \
   4 // upper rounding of NUM_POSITIONS / 8 = 3.875 -> 4 bytes
-#define NINTS (1 << 21) + 9
+#define NINTS ((1 << 21) + 9)
 #define MEAN 141909.33
 #define SIGMA 339.1578
 

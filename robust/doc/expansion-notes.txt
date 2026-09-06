@@ -27,7 +27,9 @@ sensitivity, but it cannot cause a good generator to be rejected.
 
 We added twenty tests (numbers 22-41), adapting statistics from the Diehard,
 Dieharder, and NIST batteries. The suite now has 41 test families and covers the
-Diehard battery and about 93% of NIST STS. Each new test and its origin:
+Diehard battery and most of NIST STS. The one NIST test with no
+counterpart here is Overlapping Template Matching (SP 800-22 section 2.8),
+as noted in section 6 below. Each new test and its origin:
 
   #   Test                             Source suite(s)        File
   --  -------------------------------  ---------------------  ------------------------------

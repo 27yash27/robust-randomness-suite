@@ -11,8 +11,12 @@
 #
 # Three checks:
 #   1. the generator layer still matches the committed golden output
-#   2. a good generator passes            (data.e.32, the binary digits of e)
-#   3. a bad generator is detected        (data.e, the same digits as ASCII text)
+#   2. a good input passes                (data.e.32, the binary digits of e)
+#   3. a bad input is detected            (data.e, the same digits as ASCII text)
+#
+# The two committed files are the same digits in different encodings, so they
+# are not independent sources. That is adequate for a build tripwire, which is
+# all this is; it is not a statement about either file's randomness.
 #   4. test 36 counts a template wherever it sits in a block
 #
 # A mismatch in checks 2 or 3 means the build or a statistic changed, not that
@@ -36,7 +40,10 @@ trap 'rm -f tmp.out' EXIT
 #   data.e     the same digits as ASCII text, which should not
 GOOD=../data/data.e.32
 BAD=../data/data.e
-REF=../data/data.e
+# Each control is compared against the other file, never against itself: running
+# a file as its own etalon is not the two-sample construction at all.
+GOOD_REF=../data/data.e
+BAD_REF=../data/data.e.32
 
 # Recorded on a known-good build, using -k. Compared with the relative
 # tolerance below, not character for character.
@@ -60,8 +67,9 @@ else
 fi
 
 # control TESTED -> prints the first p-value of test 20 against the reference
+# control TESTED REFERENCE -> the first p-value of test 20
 control() {
-  "$RTEST" -k -x -f "$1" -e "$REF" -t 20 -d 1 -n 100 -p 20 -q 20 -r 1 \
+  "$RTEST" -k -x -f "$1" -e "$2" -t 20 -d 1 -n 100 -p 20 -q 20 -r 1 \
     2>/dev/null | head -1 | tr -d ' '
 }
 
@@ -78,7 +86,7 @@ close() {
 }
 
 echo "2. good generator should pass (data.e.32, binary digits of e)"
-p=$(control "$GOOD")
+p=$(control "$GOOD" "$GOOD_REF")
 if [ "$(close "$p" "$GOOD_EXPECTED")" = "yes" ]; then
   echo "   ok (p = $p)"
 elif [ -z "$p" ]; then
@@ -90,7 +98,7 @@ else
 fi
 
 echo "3. bad generator should be detected (data.e, the same digits as ASCII)"
-p=$(control "$BAD")
+p=$(control "$BAD" "$BAD_REF")
 if [ "$(close "$p" "$BAD_EXPECTED")" = "yes" ]; then
   echo "   ok (p = $p)"
 elif [ -z "$p" ]; then

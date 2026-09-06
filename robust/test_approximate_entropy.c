@@ -44,7 +44,7 @@ bool approximate_entropy(long double *value, unsigned long *hash, PRG gen,
   if (n < (long)(m + 2)) {
     return false; /* not enough bits to even seed the rolling patterns */
   }
-  if ((double)m > log2((double)n) - 4.0 && debug) {
+  if ((double)m > log2((double)n) - 5.0 && debug) {
     printf("ApEn: m=%d may be too large for n=%ld bits\n", m, n);
   }
 

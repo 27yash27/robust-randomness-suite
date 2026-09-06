@@ -10,7 +10,12 @@
  * type of 1,000 circular windows of length 5. There are 5! = 120 possible
  * orderings, so the test accumulates 1,000,000 total observations and
  * evaluates the quadratic form based on the exact covariance of these
- * overlapping circular counts. The covariance has numerical rank 96.
+ * overlapping circular counts. The covariance has numerical rank 96, where
+ * Diehard and Dieharder use 99. The difference is the circular window: closing
+ * the sequence into a ring adds three linear constraints among the 120
+ * permutation counts that an open window does not impose, so three further
+ * eigenvalues vanish. The rank is asserted below, because a platform that
+ * computes a different one would silently change every p-value from this test.
  *
  * For the robust two-sample KS framework we return the upper-tail chi-square
  * p-value as a single scalar. The exact normalization is not required for the
@@ -29,6 +34,8 @@
 
 static bool operm5_initialized = false;
 static bool operm5_init_ok = false;
+/* Rank of the 120x120 covariance under the circular-window construction. */
+#define OPERM5_EXPECTED_RANK 96
 static int operm5_rank = 0;
 static double operm5_factorial[OPERM5_MAX_ITEMS + 1];
 static int operm5_perms[OPERM5_STATES][OPERM5_WINDOW];
@@ -259,6 +266,17 @@ cleanup:
     gsl_vector_free(eval);
   if (work != NULL)
     gsl_eigen_symmv_free(work);
+
+  /* The rank is a property of the construction, not of the platform. If a
+   * different GSL build puts a near-zero eigenvalue on the other side of the
+   * tolerance, every p-value from this test shifts, so fail loudly instead. */
+  if (operm5_rank != OPERM5_EXPECTED_RANK) {
+    fprintf(stderr,
+            "OPERM5: covariance rank %d, expected %d. The chi-square degrees of "
+            "freedom would be wrong, so this test is disabled on this build.\n",
+            operm5_rank, OPERM5_EXPECTED_RANK);
+    return (false);
+  }
   return (operm5_rank > 0);
 }
 
