@@ -41,6 +41,7 @@ done
 
 : > "$OUT"
 failed=0
+skipped=0
 ran=0
 
 # Runs one test and records whether it actually produced a p-value. rtest
@@ -62,16 +63,33 @@ run() {  # label  test  dim  n  p  [modifier]
   cat "$tmp" >> "$OUT"
 
   reason=""
+  declined=""
   if [ $status -ne 0 ]; then
     reason="rtest exited $status"
   elif grep -q "oops" "$tmp"; then
     reason="ran out of data"
   elif ! grep -qE "^ *-?[0-9]+\.[0-9]+" "$tmp"; then
-    reason="no p-value produced"
+    # rtest prints nothing when a statistic refuses to compute. Ask it again
+    # with -v: a refusal the test states itself is a result, not a failure.
+    if [ -n "$6" ]; then
+      "$RTEST" -v -x -f "$GEN" -e "$ETAL" -p "$5" -q "$5" -d "$3" -n "$4" -t "$2" -m "$6" -r 1 > "$tmp.v" 2>&1
+    else
+      "$RTEST" -v -x -f "$GEN" -e "$ETAL" -p "$5" -q "$5" -d "$3" -n "$4" -t "$2" -r 1 > "$tmp.v" 2>&1
+    fi
+    if [ $? -eq 0 ] && grep -q "too few cycles" "$tmp.v"; then
+      declined="$(grep -m1 'too few cycles' "$tmp.v" | sed 's/^ *//')"
+    else
+      reason="no p-value produced, and no stated reason"
+    fi
+    rm -f "$tmp.v"
   fi
   rm -f "$tmp"
 
-  if [ -n "$reason" ]; then
+  if [ -n "$declined" ]; then
+    echo "   -> declined by the statistic: $declined" >> "$OUT"
+    echo "t$2 $1: declined by the statistic ($declined)" >&2
+    skipped=$((skipped + 1))
+  elif [ -n "$reason" ]; then
     echo "   -> FAILED ($reason)" >> "$OUT"
     echo "t$2 $1: $reason" >&2
     failed=$((failed + 1))
@@ -101,9 +119,13 @@ run "Approximate Entropy"              40  1     100000   5
 run "Maurer's Universal"               41  1     100000   5
 
 echo "" >> "$OUT"
+if [ "$skipped" -ne 0 ]; then
+  echo "$skipped of $ran tests declined to compute on this input (see $OUT)" >&2
+  echo "$skipped of $ran tests declined to compute on this input" >> "$OUT"
+fi
 if [ "$failed" -ne 0 ]; then
   echo "$failed of $ran tests did not complete -- see $OUT" >&2
   echo "$failed of $ran tests did not complete" >> "$OUT"
   exit 1
 fi
-echo "all $ran tests completed -> $OUT"
+echo "$((ran - skipped)) of $ran tests produced p-values -> $OUT"

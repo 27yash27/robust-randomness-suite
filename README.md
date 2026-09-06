@@ -226,7 +226,11 @@ The upstream batteries cover tests 0, 1 and 3 to 16 only. Test 2 is a
 debugging function, and **tests 17 to 21 have no battery**, so run those by
 hand with `rtest` if you need them.
 
-Results land in `yourgen.bin.expansion` and `yourgen.bin.test100m`. Use
+Results land in `yourgen.bin.expansion` and `yourgen.bin.test100m`.
+`rtest_expansion.sh` exits non-zero if a test fails to produce a p-value, but
+not when a statistic states its own reason for declining, which it records with
+that reason. On a 300 MB random input, expect tests 32 and 33 to decline with
+"too few cycles". Use
 `rtest1m.sh`, `rtest10m.sh`, `rtest100m.sh`, `rtest1g.sh` or `rtest10g.sh` to
 match your file's size.
 
