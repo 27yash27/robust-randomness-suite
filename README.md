@@ -8,8 +8,11 @@ one of them by XOR with a fixed reference file. Under the randomness model that
 transformation leaves the distribution unchanged, so the two samples can be
 compared directly with a two-sample Kolmogorov-Smirnov test. That avoids having
 to derive a null distribution for each statistic separately, which is where
-approximation error usually enters. The same code computes both samples, so an
-inaccurate statistic costs sensitivity rather than validity.
+approximation error usually enters. Because the same deterministic code produces
+both samples, an inaccurate statistic can still leave the null calibration
+intact under the construction's assumptions; it will generally change individual
+p-values and the test's power, and it is not a guarantee against arbitrary
+implementation or numerical errors.
 
 Small p-values are evidence against the randomness model. A large p-value does
 not certify a generator, and the numerical limits in step 5 are real; read them
@@ -62,21 +65,8 @@ statistic is correct.
 The Makefile builds with `-fsanitize=address`, which is about ten times slower.
 Remove it from `FLAGS` for long runs.
 
-Steps 3 to 7 below run from inside `robust/`; steps 8 and 9 run from the
-repository root, and each says so.
-
-Confirm the build is good before you trust any result:
-
-```bash
-make check
-```
-
-It takes a few seconds and uses only files in this repository. It checks four
-things: that the generators still match their committed reference output, that
-a known-good generator passes, that a known-bad one is detected, and that test
-36 counts a template wherever it sits in a block. Passing means those four
-checks passed. It is a build sanity check, not evidence that every statistic is
-correct.
+**Every command in this README runs from the repository root.** The few that
+need a different directory say so and change into it themselves.
 
 ## 3. See it work, with no files of your own
 
@@ -180,11 +170,26 @@ Two things that will bite you:
 
 ## 6. Test your own generator
 
+You need two files:
+
+- **your generator's output**, raw bytes with no header. A few hundred MB suits
+  most tests; see the per-test budget in `reproducibility/README.md`.
+- **an etalon**, any fixed file at least as large. Its contents do not affect
+  validity, but they do affect the numbers, so keep the one you used if you want
+  to reproduce a result later.
+
 ```bash
-./rtest -x -f yourgen.bin -e etalon.bin -p 40 -q 40 -d 1 -n 100000 -t 37 -r 1
+head -c 300000000 /dev/urandom > etalon.bin
 ```
 
-That is NIST Runs (test 37). It prints one p-value per coordinate.
+Then run one test. This one is NIST Runs, test 37:
+
+```bash
+(cd robust && ./rtest -x -f ../yourgen.bin -e ../etalon.bin \
+    -p 40 -q 40 -d 1 -n 100000 -t 37 -r 1)
+```
+
+It prints the KS p-value, one per coordinate.
 
 The flags:
 
@@ -195,23 +200,25 @@ The flags:
 | `-e` | the etalon file |
 | `-t` | which test, 0 to 41 |
 | `-d` | how many values that test returns |
-| `-n` | that test's size parameter |
+| `-n` | that test's size parameter, whose unit is test-dependent |
 | `-p` `-q` | the two sample sizes |
 | `-r 1` | run once. `-r 0` repeats until the data runs out. |
-| `-k` | slower, exact p-value. See the warning in step 5. |
+| `-k` | the GMP backend: slower, and free of the underflow in step 5 |
 | `-m` | extra parameter, needed only by some tests (test 31 uses `-m 500`) |
 | `-o` | write the raw sample values to this directory, for plotting |
 | `-v` | verbose, prints what it is doing |
 
-**`-d` and `-n` are not free to choose.** Each test needs particular values.
-They are listed in `scripts/robust_test_catalog.py`, and the scripts below read
-them from there, so you never have to type them by hand.
+**`-d` and `-n` are not free to choose.** Each test needs particular values,
+listed in `scripts/robust_test_catalog.py` and used automatically by the scripts
+in steps 3 and 4, so take them from there rather than guessing.
 
 ## 7. Run a whole battery
 
+The battery scripts write next to their input, so run them from `robust/`:
+
 ```bash
-./rtest_expansion.sh yourgen.bin etalon.bin     # tests 22-41
-./rtest100m.sh yourgen.bin etalon.bin           # tests 0, 1 and 3-16
+(cd robust && ./rtest_expansion.sh ../yourgen.bin ../etalon.bin)   # tests 22-41
+(cd robust && ./rtest100m.sh ../yourgen.bin ../etalon.bin)         # tests 0, 1, 3-16
 ```
 
 `rtest_expansion.sh` exits non-zero if any test fails to produce a p-value.
@@ -234,7 +241,7 @@ Do not just run once. This runs one test across a range of sizes and reports the
 strongest result:
 
 ```bash
-python3 ../scripts/run_maximal_p_sweep.py --campaign mytest \
+python3 scripts/run_maximal_p_sweep.py --campaign mytest \
     --generator-dir /path/to/generators --etalon etalon.bin --tests 37
 ```
 
@@ -243,7 +250,7 @@ python3 ../scripts/run_maximal_p_sweep.py --campaign mytest \
 To see what a test is actually doing:
 
 ```bash
-python3 ../scripts/compare_curves.py -t 37 -f yourgen.bin -e etalon.bin
+python3 scripts/compare_curves.py -t 37 -f yourgen.bin -e etalon.bin
 ```
 
 This runs test 37 at five sample sizes and writes one SVG with a panel per run.
@@ -306,10 +313,18 @@ Both are in upstream files and are left unchanged here.
 
 ## Validation
 
-Checked against the nine NIST reference generators. The three good ones
-(Blum-Blum-Shub, Linear Congruential, Micali-Schnorr) gave no false positives.
-All six defective ones were detected, with best-in-sweep p-values below 1e-10.
-Results agreed with and without the XOR step. The generator files run to tens of
+Checked against the nine NIST reference generators, on **tests 22 to 31 only**.
+In that campaign the three intended controls (Blum-Blum-Shub, Linear
+Congruential, Micali-Schnorr) crossed the 1e-10 threshold on no test, and the
+other six crossed it on at least one. Read those as recorded exploratory
+outcomes, not as an estimated false-positive rate: nine generators over ten
+tests cannot establish one, the minimum over a sweep is biased low by the
+search, and 27 of the 90 rows report exactly 1.0 through the backend that is
+known to underflow at that sample size.
+
+The campaign metadata records XOR mode as enabled throughout, so this repository
+holds no no-XOR comparison; any claim that results agreed with and without the
+XOR step is not supported by what is committed here. The generator files run to tens of
 GB and are not in this repository, but their recipes, hashes and the original
 results are: see `reproducibility/`. **That campaign covers tests 22 to 31
 only**, on nine generators; tests 32 to 41 have no campaign of their own. Two of

@@ -89,6 +89,9 @@ def parse_args():
                     help="restrict to these test numbers (default: all 22-41)")
     ap.add_argument("--max-sizes", type=int, default=5,
                     help="how many of the catalog's sample sizes to use (default 5)")
+    ap.add_argument("--allow-incomplete", action="store_true",
+                    help="exit 0 even when runs fail or curves cannot be drawn; "
+                         "the results are still recorded either way")
     ap.add_argument("--ksexact", action="store_true",
                     help="pass -k for the exact KS routine. Slower, but the "
                          "default routine underflows at large sample sizes on "
@@ -185,8 +188,12 @@ def classify(result, dimension):
         return ("parse_error", None, " ".join(raw_tokens[:4]), [])
     if not all(math.isfinite(v) for v in values):
         return ("numerical_failure", None, raw_tokens[0], values)
-    if not all(0.0 <= v <= 1.0 for v in values):
-        # a p-value outside [0,1] is not a p-value
+    # A p-value must lie in [0,1]. The default kernel can produce a very small
+    # negative by cancellation where the true value is a tiny positive; those
+    # are treated as unresolved rather than invalid. Anything further outside
+    # the interval is not a p-value at all.
+    CANCELLATION = -1e-9
+    if not all(CANCELLATION <= v <= 1.0 for v in values):
         return ("out_of_range", None, raw_tokens[0], values)
 
     raw = raw_tokens[0]
@@ -270,6 +277,7 @@ def main():
     summary = []
     incomplete = []
     all_statuses = []
+    all_curves = []
 
     with (out / "results.csv").open("w", newline="") as f:
         w = csv.DictWriter(f, fieldnames=cols)
@@ -332,6 +340,7 @@ def main():
                                 curve = "drawn"
 
                     all_statuses.append(status)
+                    all_curves.append(curve)
                     w.writerow({
                         "test_num": tnum, "title": cfg.title, "fixture": fixture,
                         "dimension": cfg.dimension, "n_value": cfg.n_value,
@@ -369,7 +378,11 @@ def main():
     # Real problems, as opposed to a statistic declining or wanting more data.
     hard = [r for r in all_statuses
             if r in ("process_failure", "parse_error", "numerical_failure",
-                     "no_output_unexplained")]
+                     "out_of_range", "no_output_unexplained")]
+    # A run that reported a value but whose samples could not be drawn is also a
+    # failure: the recipe promised a curve and did not produce one.
+    bad_curves = [c for c in all_curves
+                  if c not in ("drawn", "not attempted")]
     if incomplete:
         print(f"\n{len(incomplete)} test/fixture pairs produced no curves:")
         for tnum, fixture in incomplete:
@@ -377,12 +390,20 @@ def main():
         print("Check numeric_status in results.csv. "
               "'statistic_declined_too_few_cycles' is the test saying so itself, "
               "confirmed from its own -v output, and is expected for Random "
-              "Excursions on a perfectly balanced stream. 'ran_out_of_data' means "
+              "Excursions on the biased ASCII fixture. 'ran_out_of_data' means "
               "raise --size-mb. 'no_output_unexplained' is a real failure.")
-    if hard:
-        print(f"\n{len(hard)} runs failed for reasons that need looking at.")
+    if bad_curves:
+        print(f"\n{len(bad_curves)} run(s) reported a value but produced no curve:")
+        for c in sorted(set(bad_curves)):
+            print(f"   {c}")
+    if hard or bad_curves:
+        print(f"\n{len(hard)} run(s) failed and {len(bad_curves)} curve(s) could "
+              f"not be drawn. See numeric_status and curve in results.csv.")
+        if a.allow_incomplete:
+            print("--allow-incomplete was given, so this exits 0 anyway.")
+            return 0
         return 1
-    print("\nNo run failed unexpectedly.")
+    print("\nEvery run was accounted for and every expected curve was drawn.")
     return 0
 
 

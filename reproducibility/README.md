@@ -178,44 +178,57 @@ Substitute the generator number 1 to 9 as listed in the guide.
 They are 1 GB each and are not in this repository; rebuild them with the recipe
 above.
 
-### The etalon: 512 MB is enough, not 40 GB
+### The etalon: a 1 GB prefix, not 40 GB
 
 The etalon used in the campaign is a 40 GB file, which looked impossible to
-publish. Measuring what the runs actually read changes that.
+publish. It does not have to be published in full.
 
-`rtest` reports its consumption with `-r 2`. Across every test in the campaign
-the ratio is exactly 2:1, tested bytes to etalon bytes:
+In XOR mode both samples are drawn from the tested generator and only the second
+group is XOR-ed with etalon blocks. Writing A for the bytes the untransformed
+sample takes and B for the transformed one, the tested file supplies A+B and the
+etalon supplies B. So
 
-| Test | tested bytes at p=q=10 | etalon bytes | ratio |
-|---|---:|---:|---:|
-| 22 | 167,773,040 | 83,886,520 | 2.00 |
-| 23 | 5,120,240 | 2,560,120 | 2.00 |
-| 27 | 80,000,160 | 40,000,080 | 2.00 |
-| 28 | 108,041,184 | 54,022,720 | 2.00 |
-| 31 | 327,840 | 163,920 | 2.00 |
+    etalon bytes = B < A + B = tested bytes <= tested file size.
 
-That follows from the construction: all p+q blocks come from the tested
-generator and only the second group is XOR-ed with etalon blocks. Since every
-tested file is 1,000,000,000 bytes, **no run in this campaign can read more than
-500,000,000 bytes of etalon.**
+Every tested file in this campaign is 1,000,000,000 bytes, so **no run can read
+more than 1 GB of etalon.** That is the whole argument, and it holds whatever
+the statistic does internally.
 
-A 512,000,000-byte prefix was cut and checked against the recorded values:
+An earlier version of this file claimed a factor of two rather than one, on the
+grounds that A and B are equal. They are not. Statistics that read until a
+data-dependent stopping condition can consume very unequal amounts. Squeeze on a
+zero-filled input is the clearest case:
 
-| Case | With the 512 MB prefix | Recorded |
+```
+robust/rtest -x -f zero.bin -e reference.bin -p 1 -q 1 -n 0 -d 1 -t 26 -r 2
+  Used 9621132 bytes from the test generator [0]
+  Used 9221124 bytes from the etalon generator [1]
+```
+
+That is 96% of the tested consumption, not 50%. The ratio was measured at 0.500
+for test 23, 0.772 for test 28 and 0.958 for test 26 on that fixture. Only the
+inequality above is safe to rely on.
+
+A 1,000,000,000-byte prefix was cut and checked, including a data-dependent test
+at the ceiling the recheck sweep reached:
+
+| Case | With the 1 GB prefix | Recorded |
 |---|---|---|
-| t23, BBS, p=q=1953 (the ceiling) | 0.261534995558913019 | 0.261534995558913 |
+| t23, BBS, p=q=1953 | 0.261534995558913019 | 0.261534995558913 |
 | t26, Cubic Congruential, p=q=30 | 0.000000000000000222 | 2.22e-16 |
-| t26, G-using-SHA-1, p=q=30 | 0.000000000000000222 | 2.22e-16 |
+| t26, G-using-SHA-1, p=q=97 | 0.000000000000000444 | (recheck sweep ceiling) |
 
-So the historical numbers **are** reproducible from a 512 MB prefix. Its
-SHA-256 is `fa25613eca5d81265896f622c127a629c1dd1208968ef1bc0fc5596ae279246a`,
-and it is the first 512,000,000 bytes of the file whose full SHA-256 is
+Its SHA-256 is
+`71a1e24ce3cd639c4910bc918005910012a1471a22baf84e0999ce3aaf18fa68`, and it is the
+first 1,000,000,000 bytes of the file whose full SHA-256 is
 `64b26aacdbb69488da061d2b8b1ef74f106be69e128dc582e2e11be52f709ce1`.
 
-That prefix is small enough for a data archive with a stable identifier. **It is
-not yet published**; publishing it is the remaining step to make the historical
-campaign independently checkable, and it is the single most useful thing left to
-do here.
+Those are three spot checks, not a rerun of the 90-row campaign. What is
+established is the bound above plus agreement on those three settings.
+
+**The prefix is not published yet.** It is small enough for a data archive with
+a stable identifier, and publishing it is the remaining step for independent
+historical reproduction.
 
 The etalon is a fixed XOR mask, not a trusted source of randomness. Its quality
 does not affect validity, but its *contents* determine the observed samples and

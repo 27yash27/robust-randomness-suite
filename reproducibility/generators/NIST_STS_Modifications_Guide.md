@@ -25,7 +25,7 @@ are changed.
 | `makefile` | Added OpenSSL include/link flags |
 | `src/utilities.c` | Added bit-packing routine in `nist_test_suite()` + early return to skip statistical tests |
 | `src/generators.c` | Replaced custom big-integer math with OpenSSL in 3 crypto generators; fixed integer overflow in XOR |
-| `nist_test_generator_both.py` | New — automation script for batch generation |
+| `generate_nist_inputs.py` | New — automation script for batch generation. The script that actually produced the campaign inputs, `nist_test_generator_both.py`, is archived under `../campaign-2026-05-02/original-tooling/` and should not be run: it hardcodes a personal path and kills processes by name. |
 
 ---
 
@@ -486,7 +486,9 @@ ls -l bad_generator_output.bin   # should be 12,500 bytes
 ### Using the automation script
 
 ```bash
-python3 -u nist_test_generator_both.py
+python3 generate_nist_inputs.py --sts . --out ./inputs --size-mb 1000
+
+# it copies this tree per generator, so the tree you point at is not modified
 ```
 
 Choose `1` for 100MB or `2` for 1GB. The script:

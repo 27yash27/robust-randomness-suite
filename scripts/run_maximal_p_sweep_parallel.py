@@ -43,6 +43,9 @@ def main() -> int:
     parser.add_argument("--n-groups", type=int, default=3)
     parser.add_argument("--tests", nargs="+", type=int, default=list(range(22, 32)))
     parser.add_argument("--xor", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--allow-incomplete", action="store_true",
+                        help="merge even if a worker failed; the result is "
+                             "labelled incomplete and still exits non-zero")
     parser.add_argument("--ksexact", action="store_true",
                         help="forwarded to each worker; without it the workers use "
                              "the default KS routine, which underflows at large "
@@ -111,8 +114,19 @@ def main() -> int:
     for f in log_files:
         f.close()
 
-    if any(rc != 0 for rc in statuses.values()):
-        print("WARNING: at least one group did not exit cleanly; merging anyway")
+    failed_groups = [gi for gi, rc in statuses.items() if rc != 0]
+    missing_groups: list[int] = []
+    if failed_groups and not args.allow_incomplete:
+        print(f"\nGroups {failed_groups} did not exit cleanly. Their per-group "
+              f"directories and logs are left in place for inspection; nothing "
+              f"has been merged, because a merged campaign built from an "
+              f"incomplete set would look like a complete one.\n"
+              f"Re-run those groups, or pass --allow-incomplete to merge what "
+              f"succeeded and label the result incomplete.", file=sys.stderr)
+        return 1
+    if failed_groups:
+        print(f"WARNING: groups {failed_groups} did not exit cleanly; "
+              f"--allow-incomplete was given, so merging anyway")
 
     merged_dir = args.results_root / args.campaign
     merged_dir.mkdir(parents=True, exist_ok=True)
@@ -127,6 +141,7 @@ def main() -> int:
         sub = args.results_root / f"{args.campaign}_g{gi}" / "maximal_p.csv"
         if not sub.exists():
             print(f"WARN: missing {sub}")
+            missing_groups.append(gi)
             continue
         with sub.open() as f:
             r = csv.reader(f)
@@ -201,6 +216,11 @@ def main() -> int:
         "rtest": template.get("rtest"),
         "xor": args.xor,
         "max_p_cap": template.get("max_p_cap"),
+        "ksexact": args.ksexact,
+        "ks_backend": "exact-gmp (-k)" if args.ksexact else "default-psmirnov2x",
+        "failed_groups": failed_groups,
+        "missing_groups": missing_groups,
+        "complete": not incomplete,
         "threshold": template.get("threshold"),
         "charts_enabled": template.get("charts_enabled"),
         "tests": template.get("tests"),
@@ -216,16 +236,27 @@ def main() -> int:
     # Now that artifacts are moved out of each sub-campaign, remove the
     # (mostly-empty) per-group dirs so the directory tree is identical to a
     # serial-run output. Keep their .log files in the workdir for debugging.
-    for gi, _, _, _ in procs:
-        sub_dir = args.results_root / f"{args.campaign}_g{gi}"
-        if sub_dir.exists():
-            shutil.rmtree(sub_dir)
+    incomplete = bool(failed_groups or missing_groups)
+    if incomplete:
+        print("Keeping the per-group directories, because this campaign is "
+              "incomplete and their metadata is not fully carried into the "
+              "merged record.")
+    else:
+        for gi, _, _, _ in procs:
+            sub_dir = args.results_root / f"{args.campaign}_g{gi}"
+            if sub_dir.exists():
+                shutil.rmtree(sub_dir)
 
     total = time.monotonic() - t0
     print(f"Wrote {merged_dir / 'maximal_p.csv'}")
     print(f"Wrote {merged_dir / 'generator_manifest.csv'}")
     print(f"Wrote {merged_dir / 'campaign.json'}")
     print(f"Total wall time: {total/60:.1f} min ({total/3600:.2f} hr)")
+    if incomplete:
+        print(f"\nINCOMPLETE: groups {sorted(set(failed_groups + missing_groups))} "
+              f"did not contribute. Do not read this merged campaign as a full one.",
+              file=sys.stderr)
+        return 1
     return 0
 
 

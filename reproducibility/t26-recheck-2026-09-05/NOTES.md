@@ -22,13 +22,25 @@ Inputs:
 
 - tested: `bad_Cubic_Congruential_1GB.bin` and `bad_G_Using_SHA-1_1GB.bin`, the
   same 9 April 2026 campaign files, hashed in `../input-manifest.csv`
-- etalon: the **512,000,000-byte prefix** of the campaign etalon, SHA-256
-  `fa25613eca5d81265896f622c127a629c1dd1208968ef1bc0fc5596ae279246a`. See
-  `../README.md` for why a prefix of that length is sufficient and how it was
-  checked against the recorded values.
+- etalon: a **1,000,000,000-byte prefix** of the campaign etalon, SHA-256
+  `71a1e24ce3cd639c4910bc918005910012a1471a22baf84e0999ce3aaf18fa68`. See
+  `../README.md` for why a prefix of that length is sufficient. The 16 boundary
+  runs below were originally executed against a 512 MB prefix and give the same
+  values; the surviving logs are those runs.
 
-Produced by the repository revision recorded in `results.csv`, on macOS on
-Apple Silicon. Both generators were run separately and are recorded separately
+  `full-sweep/campaign.json` records the etalon path as the original
+  `etal.bin`, because the sweep script writes the path it was given. That sweep
+  was run against the prefix. The committed metadata does not resolve this by
+  itself, which is a gap in the record rather than a claim you should take on
+  trust.
+
+Produced on macOS on Apple Silicon. `results.csv` records the command, sample
+size, backend, return code, whether an end-of-input message appeared, and the
+log path for each run. It does **not** record a producing revision or the input
+hashes; those were not captured at the time and are not reconstructed here. The
+commands in that column are written with `<gen>` and
+`<etalon-1GB-prefix>` placeholders rather than the absolute private paths; the
+files they stand for are the ones named just above. Both generators were run separately and are recorded separately
 even though their outputs agree at these settings.
 
 ## Caveat
@@ -47,18 +59,25 @@ value falls below the printed resolution the result is recorded as
 `censored_zero` with a threshold verdict of `unresolved` rather than being
 discarded as exhausted input.
 
-| Generator | max_p | objective | status |
-|---|---:|---|---|
-| Blum-Blum-Shub | 54 | 0.2137 | ok |
-| Cubic Congruential | 54 | 0 | censored_zero |
-| G-using-SHA-1 | 97 | 0 | censored_zero |
-| Linear Congruential | 54 | 0.4447 | ok |
-| Micali-Schnorr | 54 | 0.7597 | ok |
-| Modular Exponentiation | 54 | 0.7597 | ok |
-| Quadratic Congruential II | 54 | 3.0e-10 | ok |
-| Quadratic Congruential I | 54 | 0.5985 | ok |
-| XOR | 54 | 4.9e-10 | ok |
+| Generator | max_p | final objective | status | beats 1e-10 |
+|---|---:|---|---|---|
+| Blum-Blum-Shub | 54 | 0.213675 | ok | no |
+| Cubic Congruential | 54 | 0 | censored_zero | unresolved |
+| G-using-SHA-1 | 97 | 0 | censored_zero | unresolved |
+| Linear Congruential | 54 | 0.444707 | ok | no |
+| Micali-Schnorr | 54 | 0.759708 | ok | no |
+| Modular Exponentiation | 54 | 0.759708 | ok | no |
+| Quadratic Congruential II | 54 | 3e-18 | ok | yes |
+| Quadratic Congruential I | 54 | 0.598484 | ok | no |
+| XOR | 54 | 4.88425e-06 | ok | no |
+
+Regenerate this table with `python3 make_summary.py`; it is printed from
+`full-sweep/maximal_p.csv` rather than typed, because an earlier hand-written
+version of it misreported two of these values.
 
 The cap of 120 was chosen to keep the exact backend tractable; it is not a
 measured ceiling. `unresolved` means the value is below what the driver can
-print, not that a detection has been established.
+print, not that a detection has been established. The recorded `max_p` values
+are where each sweep stopped under that cap; the committed summary does not by
+itself identify which input exhausted first, and the per-probe histories for
+this sweep were not preserved.
