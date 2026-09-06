@@ -88,6 +88,7 @@ raw logs:
 |---|---:|---|---|
 | 29 | 3000 | 1.000000000000000000 | 0.872391667779662372 |
 | 30 | 3000 | 1.000000000000000000 | 0.564674346019481077 |
+| 31 | 3000 | 1.000000000000000000 | 0.758388398556456012 |
 
 The default routine returns exactly 1.0 where the exact routine returns an
 ordinary p-value, which is the `psmirnov2x` underflow and nothing about the

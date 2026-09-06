@@ -12,8 +12,11 @@ Inputs: `bad_Blum-Blum-Shub_1GB.bin` from the 9 April campaign set, against a
 3000, above the threshold where the default routine is known to fail and small
 enough for the exact routine to finish.
 
-The default routine returns exactly 1.0; the exact routine returns an ordinary
-p-value at the same settings. The saturation is arithmetic, not data.
+Three of the four affected tests were checked: 29, 30 and 31. In each the
+default routine returns exactly 1.0 while the exact routine returns an ordinary
+p-value at the same settings. The saturation is arithmetic, not data. Test 25
+was not rerun; it shares the same signature in the campaign, but that is
+inference rather than measurement.
 
 This checks the mechanism on a sample of settings. It does not replace the 36
 recorded rows, which would need those rows rerun with `--ksexact`.
