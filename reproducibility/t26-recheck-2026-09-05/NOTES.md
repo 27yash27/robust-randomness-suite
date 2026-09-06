@@ -22,17 +22,20 @@ Inputs:
 
 - tested: `bad_Cubic_Congruential_1GB.bin` and `bad_G_Using_SHA-1_1GB.bin`, the
   same 9 April 2026 campaign files, hashed in `../input-manifest.csv`
-- etalon: a **1,000,000,000-byte prefix** of the campaign etalon, SHA-256
-  `71a1e24ce3cd639c4910bc918005910012a1471a22baf84e0999ce3aaf18fa68`. See
-  `../README.md` for why a prefix of that length is sufficient. The 16 boundary
-  runs below were originally executed against a 512 MB prefix and give the same
-  values; the surviving logs are those runs.
+- etalon: **the 16 boundary runs used a 512,000,000-byte prefix** of the
+  campaign etalon, SHA-256
+  `fa25613eca5d81265896f622c127a629c1dd1208968ef1bc0fc5596ae279246a`. The logs
+  in `logs/` are those runs.
 
-  `full-sweep/campaign.json` records the etalon path as the original
-  `etal.bin`, because the sweep script writes the path it was given. That sweep
-  was run against the prefix. The committed metadata does not resolve this by
-  itself, which is a gap in the record rather than a claim you should take on
-  trust.
+  **The nine-generator sweep in `full-sweep/` used the original 40 GB etalon**,
+  not a prefix. Its `campaign.json` records that path, which is correct. The two
+  parts of this recheck therefore used different reference bytes, and both are
+  identified above rather than assumed to be the same.
+
+  `../README.md` explains the prefix bound and shows the same values reproducing
+  from a 1 GB prefix. A 512 MB prefix is sufficient for the boundary settings
+  used here; 1 GB is the figure that is provably sufficient for any run on a
+  1 GB tested file.
 
 Produced on macOS on Apple Silicon. `results.csv` records the command, sample
 size, backend, return code, whether an end-of-input message appeared, and the
@@ -52,8 +55,8 @@ that has since been corrected. See `../README.md`.
 ## A full sweep, for the same reason
 
 `full-sweep/` holds a complete test-26 sweep over all nine generators with
-`--ksexact`, capped at 120 samples, run with the current tooling and the 512 MB
-etalon prefix. It shows the same thing from the other direction: the two
+`--ksexact`, capped at 120 samples, run with the current tooling against the
+original 40 GB etalon. It shows the same thing from the other direction: the two
 generators the old campaign stopped at 30 now run to 54 and 97, and where the
 value falls below the printed resolution the result is recorded as
 `censored_zero` with a threshold verdict of `unresolved` rather than being

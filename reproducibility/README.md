@@ -47,6 +47,13 @@ excursion cycles. The bytes `0x30 0x31` carry five one-bits in every sixteen, so
 the walk drifts steadily downward rather than returning to zero, and too few
 cycles form. That is the test reporting its own limit.
 
+A full run of all twenty tests at `--size-mb 700` produces **192 runs: 176
+curves drawn and 16 declines**, with every one of the twenty tests yielding at
+least one curve. Of those 192, 142 report an ordinary p-value, 28 are
+numerically unresolved and 6 sit at exactly one; all 176 of those are drawn and
+annotated rather than dropped. At `--size-mb 300` the four largest runs of tests
+32 and 33 additionally hit the input budget.
+
 ### Input budget
 
 `-n` is not a bit count for every test. Tests 32 and 33 read a million 32-bit
@@ -252,6 +259,19 @@ Path('etalon.bin').write_bytes(shake_256(b'my etalon v1').digest(1_000_000_000))
 
 and record its hash alongside the results. `scripts/run_all_experiments.py`
 already works this way, which is why its outputs are reproducible by anyone.
+
+## What is in this directory
+
+```
+README.md                     this file
+input-manifest.csv            every campaign input, with size and SHA-256
+generators/                   the patched NIST STS sources, the guide, and
+                              generate_nist_inputs.py
+campaign-2026-05-02/          the original campaign output, its provenance
+                              notes, and the archived tooling that produced it
+t26-recheck-2026-09-05/       the test-26 recheck: 16 boundary runs with raw
+                              logs, a nine-generator sweep, and make_summary.py
+```
 
 ## The campaign
 

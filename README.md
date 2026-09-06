@@ -278,6 +278,9 @@ robust/          the driver and all 41 tests
   doc/             tests-description.tex (tests 0-21), expansion-notes.txt (22-41)
 kolmogorov-smirnov/  the KS engine
 reproducibility/ generator recipes, input hashes, preserved campaign results
+tools/           check-upstream-provenance.sh, which re-derives the upstream diff
+LICENSING.md     component-by-component licence position
+CHANGES-vs-upstream.md  exactly which files differ from upstream, and known bugs
 data/            a small etalon, data.e
 scripts/         compare_curves.py, run_maximal_p_sweep.py and friends
 ent16/ general/ independent/ pipes/ readfile/ spectral_tests/ wav/

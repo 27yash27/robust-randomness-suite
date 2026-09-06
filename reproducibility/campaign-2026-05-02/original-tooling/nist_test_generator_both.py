@@ -6,7 +6,7 @@ import time
 from datetime import datetime
 
 # Path to your NIST STS software
-nist_dir = "/Users/yashbelani/Documents/0-Shen-Project/sts-2.1.2"
+nist_dir = "<project-root>/sts-2.1.2"
 
 
 def pre_run_cleanup():

@@ -25,7 +25,7 @@ are changed.
 | `makefile` | Added OpenSSL include/link flags |
 | `src/utilities.c` | Added bit-packing routine in `nist_test_suite()` + early return to skip statistical tests |
 | `src/generators.c` | Replaced custom big-integer math with OpenSSL in 3 crypto generators; fixed integer overflow in XOR |
-| `generate_nist_inputs.py` | New — automation script for batch generation. The script that actually produced the campaign inputs, `nist_test_generator_both.py`, is archived under `../campaign-2026-05-02/original-tooling/` and should not be run: it hardcodes a personal path and kills processes by name. |
+| `generate_nist_inputs.py` | New: automation script for batch generation. The script that actually produced the campaign inputs, `nist_test_generator_both.py`, is archived under `../campaign-2026-05-02/original-tooling/` and should not be run: it hardcodes a personal path and kills processes by name. |
 
 ---
 

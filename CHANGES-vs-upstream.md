@@ -12,11 +12,11 @@ consequences of that split are in `LICENSING.md`. Comparisons below are
 against that revision, so they stay checkable as upstream moves.
 
 This suite is Alexander Shen's [`rtest`](https://github.com/alexander-shen/rtest)
-plus an expansion of **20 new test statistics (numbers 22–41)**. Everything else
-is upstream and byte-for-byte unmodified — so this file is the complete list of
+plus an expansion of **20 new test statistics (numbers 22-41)**. Everything else
+is upstream and byte-for-byte unmodified, so this file is the complete list of
 what is new or changed, to make review against upstream straightforward.
 
-## New test files (tests 22–41)
+## New test files (tests 22-41)
 
 | File | # | Test |
 |------|---|------|
@@ -33,7 +33,7 @@ what is new or changed, to make review against upstream straightforward.
 | `robust/test_random_excursions.c` | 32 | Random Excursions |
 | `robust/test_random_excursions_variant.c` | 33 | Random Excursions Variant |
 | `robust/test_3d_spheres.c` | 34 | 3D Spheres |
-| `robust/test_gcd.c` | 35 | Marsaglia–Tsang GCD |
+| `robust/test_gcd.c` | 35 | Marsaglia-Tsang GCD |
 | `robust/test_nonperiodic.c` | 36 | Non-overlapping Template Matching |
 | `robust/test_runs_nist.c` | 37 | Runs |
 | `robust/test_longest_run.c` | 38 | Longest Run of Ones |
@@ -43,25 +43,25 @@ what is new or changed, to make review against upstream straightforward.
 
 ## Modified from upstream (only to register the 20 new tests)
 
-- `robust/test_func.h` — 20 forward declarations added.
-- `robust/test_func.c` — 20 entries added to `functions_list[]`.
-- `robust/Makefile` — the 20 new files appended to `TESTS_C`;
+- `robust/test_func.h`, 20 forward declarations added.
+- `robust/test_func.c`, 20 entries added to `functions_list[]`.
+- `robust/Makefile`, the 20 new files appended to `TESTS_C`;
   `rtest_expansion.sh` added to `SCRIPTS` so `make install` installs it;
   a `check` target added that runs `check.sh`.
 
 ## Added tooling and docs (not part of upstream)
 
-- `scripts/` — Python sweep and ECDF-plotting tools. Standard library only.
+- `scripts/`, Python sweep and ECDF-plotting tools. Standard library only.
   All paths are derived from the script location or passed as arguments, so
   they run from a clean checkout anywhere.
-- `robust/rtest_expansion.sh` — battery runner for tests 22–41 (the upstream
-  `rtest1m.sh … rtest10g.sh` cover the original tests only).
-- `robust/check.sh` — smoke test for a fresh build, run as `make check`.
-- `robust/test_nonperiodic_boundary.c` — boundary regression for test 36,
+- `robust/rtest_expansion.sh`, battery runner for tests 22-41 (the upstream
+  `rtest1m.sh to rtest10g.sh` cover the original tests only).
+- `robust/check.sh`, smoke test for a fresh build, run as `make check`.
+- `robust/test_nonperiodic_boundary.c`, boundary regression for test 36,
   built by `make test-nonperiodic-boundary` and run as part of `make check`.
-- `robust/doc/expansion-notes.txt` — documentation of the expansion.
-- `README.md` — this suite's README. Shen's original is kept as `README-upstream.md`.
-- `CHANGES-vs-upstream.md` — this file.
+- `robust/doc/expansion-notes.txt`, documentation of the expansion.
+- `README.md`, this suite's README. Shen's original is kept as `README-upstream.md`.
+- `CHANGES-vs-upstream.md`, this file.
 
 ## Fixed in this expansion
 
@@ -103,7 +103,7 @@ what is new or changed, to make review against upstream straightforward.
 These were found while testing the expansion. They are in Shen's original files,
 so they are left alone here and listed for him to decide on.
 
-1. **`kolmogorov-smirnov/ksmirnov.c` — `psmirnov2x` underflows at large
+1. **`kolmogorov-smirnov/ksmirnov.c`, `psmirnov2x` underflows at large
    sample sizes, and where it starts depends on the platform.** Measured on
    Apple Silicon, where `long double` is 8 bytes; on x86-64, where it is 16
    bytes with a wider exponent, the onset is later and agreement with the
@@ -114,7 +114,7 @@ so they are left alone here and listed for him to decide on.
    0.685 at n=3400, so `-k` is a correct workaround. This matters because
    `rtest.c` permits `-p`/`-q` up to 10000.
 
-2. **`robust/rtest.c` — stack overflow on high-dimension tests.**
+2. **`robust/rtest.c`, stack overflow on high-dimension tests.**
    `test_p_value` holds both samples in stack VLAs sized `n * dimension`. Test
    36 (dimension 148) segfaults with no message above about `-p 3400` on macOS,
    and near half that on Linux, where `long double` is 16 bytes.

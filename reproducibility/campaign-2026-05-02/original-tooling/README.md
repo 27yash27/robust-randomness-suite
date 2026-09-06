@@ -5,7 +5,9 @@ inputs in April and May 2026. It is kept here for provenance.
 
 **Do not run it.** It is unsafe on a machine that is doing anything else:
 
-- it hardcodes a `/Users/...` path to the author's STS tree;
+- it hardcodes an absolute path to the author's STS tree. That path has been
+  replaced with `<project-root>` here so the file does not publish a private
+  directory layout; nothing else in the script was altered;
 - it runs its cleanup at import time, before it asks for anything;
 - that cleanup scans the whole process table and sends `SIGKILL` to any process
   whose command line looks like `assess` or a generator script, including ones

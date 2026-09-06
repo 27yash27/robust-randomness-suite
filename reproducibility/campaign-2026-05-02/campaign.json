@@ -1,9 +1,9 @@
 {
   "campaign": "maxp_full_20260502",
-  "generator_dir": "/Users/yashbelani/Library/CloudStorage/Dropbox/0-Shen Research/0-Yash_New_Mac_Shen-Project/My-RNGs-Tests/NIST_Bad_Generators_20260409_0810",
+  "generator_dir": "<generator-dir>/NIST_Bad_Generators_20260409_0810",
   "generator_glob": "*.bin",
-  "etalon": "/Users/yashbelani/Library/CloudStorage/Dropbox/test_data/etal.bin",
-  "rtest": "/Users/yashbelani/Library/CloudStorage/Dropbox/0-Shen Research/0-Yash_New_Mac_Shen-Project/rtest-main/robust/rtest",
+  "etalon": "<etalon>/etal.bin",
+  "rtest": "<rtest-binary>",
   "xor": true,
   "max_p_cap": 10000,
   "threshold": 1e-10,
@@ -202,5 +202,6 @@
       "start_p": 5
     }
   ],
-  "elapsed_s": 145111.2
+  "elapsed_s": 145111.2,
+  "_note": "Absolute paths in this file were replaced with placeholders before publication; only the private directory layout was removed, the file names and every recorded value are as produced. Input identities are in ../input-manifest.csv."
 }
