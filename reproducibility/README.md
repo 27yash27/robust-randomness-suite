@@ -24,20 +24,53 @@ test does when it sees something and when it does not.
 
 Read `numeric_status` in the results rather than only the p-value:
 
-| status | meaning |
-|---|---|
-| `reported` | an ordinary p-value |
-| `below_printing_floor` | smaller than the driver's 18 decimals can show; the true value is unknown, not a certified detection |
-| `exactly_one` | legitimate at small sample sizes, suspect the KS underflow at large ones |
-| `statistic_declined` | the test says it cannot compute on this input |
-| `ran_out_of_data` | raise `--size-mb` |
+| status | meaning | fails the run? |
+|---|---|---|
+| `reported` | an ordinary p-value in (0,1) | no |
+| `numerically_unresolved` | printed as zero or a small negative; below what the driver's fixed decimals can show. Not a bound, not a certified detection | no |
+| `exactly_one` | the upper limit; legitimate at small sample sizes, suspect the KS underflow at large ones | no |
+| `statistic_declined_too_few_cycles` | the test said so itself, confirmed from its own `-v` output | no |
+| `ran_out_of_data` | the input was too small; raise `--size-mb` | no |
+| `out_of_range` | a value outside [0,1], which is not a p-value | yes |
+| `numerical_failure` | a non-finite value | yes |
+| `parse_error` | the wrong number of result values | yes |
+| `no_output_unexplained` | silent, and the `-v` re-run gave no recognised reason | yes |
+| `process_failure` | `rtest` exited non-zero | yes |
 
-`statistic_declined` is expected for Random Excursions (32) and its variant (33)
-on the `01` fixture: NIST requires a minimum number of excursion cycles, and a
-perfectly balanced stream never produces enough. The test is reporting its own
-limit, which is why the runner does not treat it as a failure. On tests 22 to 41
-at 300 MB, 18 of the 20 produce curves for both fixtures, and those two produce
-them for the random-looking one only.
+Curves are drawn whenever the statistic samples exist, including runs whose
+p-value is zero or one; those panels are labelled "numerically unresolved"
+rather than given an invented bound.
+
+`statistic_declined_too_few_cycles` is expected for Random Excursions (32) and
+its variant (33) on the ASCII fixture. NIST requires a minimum number of
+excursion cycles. The bytes `0x30 0x31` carry five one-bits in every sixteen, so
+the walk drifts steadily downward rather than returning to zero, and too few
+cycles form. That is the test reporting its own limit.
+
+### Input budget
+
+`-n` is not a bit count for every test. Tests 32 and 33 read a million 32-bit
+integers per invocation, so at the catalog's largest sample size they need
+`(80 + 80) x 1,000,000 x 4 = 640 MB` of tested data. The runner reports which
+planned runs your `--size-mb` cannot support before it starts, so an
+undersized recipe shows up as a stated limit rather than a mysterious end of
+input. Measured requirements at the largest catalog sample size:
+
+| Test | MB needed | Test | MB needed |
+|---|---:|---|---:|
+| 22 | 84 | 32 | **640** |
+| 23 | 154 | 33 | **640** |
+| 24 | 102 | 34 | 8 |
+| 25 | 10 | 35 | 64 |
+| 26 | 111 | 36 | 1 |
+| 27 | 192 | 37 | 64 |
+| 28 | 162 | 38 | 64 |
+| 29 | 2 | 39 | 64 |
+| 30 | 2 | 40 | 64 |
+| 31 | 2 | 41 | 64 |
+
+Use `--size-mb 700` to cover every planned run. At 300 MB everything completes
+except the four largest runs of tests 32 and 33.
 
 For a single test with the curves side by side, use `scripts/compare_curves.py`
 instead. For a shorter run, `scripts/reproduce_randomness_demo.py` covers test
@@ -55,8 +88,41 @@ generators/makefile                          OpenSSL include and link flags
 generators/src/generators.c                  OpenSSL big-integer math, XOR overflow fix, SHA-1
 generators/src/utilities.c                   bit packing, early return, case 9 dispatch
 generators/include/generators.h              SHA1 renamed to sha1Generator
-generators/nist_test_generator_both.py       batch generation
+generators/generate_nist_inputs.py           batch generation
 ```
+
+Once `assess` is built in the patched tree:
+
+```bash
+python3 reproducibility/generators/generate_nist_inputs.py \
+    --sts /path/to/sts-2.1.2 --out ./inputs --size-mb 1000
+```
+
+It works only inside the directory you name, records each command, exit code,
+log, byte count and SHA-256, and exits non-zero if any generator fails or
+produces the wrong size. Note that the patched `assess` exits 1 even when it
+succeeds, because the bit-packing change returns before the statistical tests;
+the script therefore gates on the completion marker and the byte count, and
+records the exit code separately.
+
+The script that actually produced the campaign inputs is archived under
+`campaign-2026-05-02/original-tooling/` with a warning: it hardcodes a personal
+path and kills processes by name at import time. Do not run it.
+
+The STS menu numbers and the campaign identifiers are not the same, so check
+this mapping before regenerating anything:
+
+| STS selector | Generator | Campaign identifier |
+|---:|---|---|
+| 1 | Linear Congruential | `g04_linear_congruential_1gb` |
+| 2 | Quadratic Congruential I | `g08_quadratic_congruential_i` |
+| 3 | Quadratic Congruential II | `g07_quadratic_congruential_ii` |
+| 4 | Cubic Congruential | `g02_cubic_congruential_1gb` |
+| 5 | XOR | `g09_xor_1gb` |
+| 6 | Modular Exponentiation | `g06_modular_exponentiation_1gb` |
+| 7 | Blum-Blum-Shub | `g01_blum_blum_shub` |
+| 8 | Micali-Schnorr | `g05_micali_schnorr_1gb` |
+| 9 | G-using-SHA-1 | `g03_g_using_sha` |
 
 Download NIST STS 2.1.2 from
 https://csrc.nist.gov/projects/random-bit-generation/documentation-and-software,
@@ -80,16 +146,16 @@ compared byte for byte against the campaign inputs.
 | Micali-Schnorr | identical |
 | **G-using-SHA-1** | **differs, see below** |
 
-Eight of the nine reproduce exactly, including the three that use OpenSSL
-big-integer arithmetic.
+Eight of the nine match **over the first 10,000,000 bytes**, which is what was
+compared. The remaining 990,000,000 bytes of each 1 GB file were not checked.
 
 ### The SHA-1 generator is the exception
 
 The campaign input `bad_G_Using_SHA-1_1GB.bin`, dated 9 April 2026, was built
 **before** the legacy inline SHA-1 transform was replaced with OpenSSL's
 `SHA1()`. The recipe committed here contains that replacement, so it does not
-rebuild that file. It rebuilds the corrected generator, and that was confirmed:
-the regenerated 4 May 2026 file matches this recipe byte for byte.
+rebuild that file. It rebuilds the corrected generator, and that was confirmed over the same
+10,000,000-byte prefix against the regenerated 4 May 2026 file.
 
 So one row of the preserved campaign, `g03_g_using_sha`, was computed on an
 input that the committed recipe no longer produces. Both files are listed in
@@ -112,18 +178,57 @@ Substitute the generator number 1 to 9 as listed in the guide.
 They are 1 GB each and are not in this repository; rebuild them with the recipe
 above.
 
-**Two inputs cannot be reproduced from anything published here, so the
-historical p-values cannot be reproduced either.**
+### The etalon: 512 MB is enough, not 40 GB
 
-- **The etalon was a 40 GB file** that is not published and is too large to
-  publish. Its SHA-256 is recorded so it can be identified if it is ever made
-  available, but nobody else can currently recreate it. Any fixed file of
-  sufficient size gives statistically valid results, because validity does not
-  depend on the etalon's quality; it will not give the *same numbers*.
-- **The SHA-1 generator input** predates the OpenSSL fix, as described above.
+The etalon used in the campaign is a 40 GB file, which looked impossible to
+publish. Measuring what the runs actually read changes that.
 
-Treat `campaign-2026-05-02/` as **archived evidence**: a record of what was run
-and what it produced, not a target you can hit again. To generate results that
+`rtest` reports its consumption with `-r 2`. Across every test in the campaign
+the ratio is exactly 2:1, tested bytes to etalon bytes:
+
+| Test | tested bytes at p=q=10 | etalon bytes | ratio |
+|---|---:|---:|---:|
+| 22 | 167,773,040 | 83,886,520 | 2.00 |
+| 23 | 5,120,240 | 2,560,120 | 2.00 |
+| 27 | 80,000,160 | 40,000,080 | 2.00 |
+| 28 | 108,041,184 | 54,022,720 | 2.00 |
+| 31 | 327,840 | 163,920 | 2.00 |
+
+That follows from the construction: all p+q blocks come from the tested
+generator and only the second group is XOR-ed with etalon blocks. Since every
+tested file is 1,000,000,000 bytes, **no run in this campaign can read more than
+500,000,000 bytes of etalon.**
+
+A 512,000,000-byte prefix was cut and checked against the recorded values:
+
+| Case | With the 512 MB prefix | Recorded |
+|---|---|---|
+| t23, BBS, p=q=1953 (the ceiling) | 0.261534995558913019 | 0.261534995558913 |
+| t26, Cubic Congruential, p=q=30 | 0.000000000000000222 | 2.22e-16 |
+| t26, G-using-SHA-1, p=q=30 | 0.000000000000000222 | 2.22e-16 |
+
+So the historical numbers **are** reproducible from a 512 MB prefix. Its
+SHA-256 is `fa25613eca5d81265896f622c127a629c1dd1208968ef1bc0fc5596ae279246a`,
+and it is the first 512,000,000 bytes of the file whose full SHA-256 is
+`64b26aacdbb69488da061d2b8b1ef74f106be69e128dc582e2e11be52f709ce1`.
+
+That prefix is small enough for a data archive with a stable identifier. **It is
+not yet published**; publishing it is the remaining step to make the historical
+campaign independently checkable, and it is the single most useful thing left to
+do here.
+
+The etalon is a fixed XOR mask, not a trusted source of randomness. Its quality
+does not affect validity, but its *contents* determine the observed samples and
+p-values, which is exactly why substituting a different file reproduces the
+method and not the numbers.
+
+**The SHA-1 generator input** predates the OpenSSL fix, as described above, and
+is the other input a third party cannot currently obtain.
+
+Until that prefix and the old SHA-1 file are published, treat
+`campaign-2026-05-02/` as **archived evidence**: a record of what was run and
+what it produced, which has been spot-checked here but which a third party
+cannot yet re-derive. To generate results that
 someone else can check number for number, run a new campaign with an etalon
 built from a published recipe, for example
 

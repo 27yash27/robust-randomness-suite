@@ -1,0 +1,17 @@
+generator,campaign_id,test,samples,backend,p_value_raw,returncode,eof_message,command,log
+Cubic_Congruential,g02_cubic_congruential_1gb,26,28,default,0.000000000000000444,0,0,robust/rtest -x  -f <gen> -e <etalon-512MB-prefix> -p 28 -q 28 -d 1 -n 0 -t 26 -r 1,logs/g02_cubic_congruential_1gb_p28_default.txt
+Cubic_Congruential,g02_cubic_congruential_1gb,26,28,exact,0.000000000000000261,0,0,robust/rtest -x -k -f <gen> -e <etalon-512MB-prefix> -p 28 -q 28 -d 1 -n 0 -t 26 -r 1,logs/g02_cubic_congruential_1gb_p28_exact.txt
+Cubic_Congruential,g02_cubic_congruential_1gb,26,30,default,0.000000000000000222,0,0,robust/rtest -x  -f <gen> -e <etalon-512MB-prefix> -p 30 -q 30 -d 1 -n 0 -t 26 -r 1,logs/g02_cubic_congruential_1gb_p30_default.txt
+Cubic_Congruential,g02_cubic_congruential_1gb,26,30,exact,0.000000000000000017,0,0,robust/rtest -x -k -f <gen> -e <etalon-512MB-prefix> -p 30 -q 30 -d 1 -n 0 -t 26 -r 1,logs/g02_cubic_congruential_1gb_p30_exact.txt
+Cubic_Congruential,g02_cubic_congruential_1gb,26,31,default,0.000000000000000000,0,0,robust/rtest -x  -f <gen> -e <etalon-512MB-prefix> -p 31 -q 31 -d 1 -n 0 -t 26 -r 1,logs/g02_cubic_congruential_1gb_p31_default.txt
+Cubic_Congruential,g02_cubic_congruential_1gb,26,31,exact,0.000000000000000004,0,0,robust/rtest -x -k -f <gen> -e <etalon-512MB-prefix> -p 31 -q 31 -d 1 -n 0 -t 26 -r 1,logs/g02_cubic_congruential_1gb_p31_exact.txt
+Cubic_Congruential,g02_cubic_congruential_1gb,26,32,default,0.000000000000000000,0,0,robust/rtest -x  -f <gen> -e <etalon-512MB-prefix> -p 32 -q 32 -d 1 -n 0 -t 26 -r 1,logs/g02_cubic_congruential_1gb_p32_default.txt
+Cubic_Congruential,g02_cubic_congruential_1gb,26,32,exact,0.000000000000000001,0,0,robust/rtest -x -k -f <gen> -e <etalon-512MB-prefix> -p 32 -q 32 -d 1 -n 0 -t 26 -r 1,logs/g02_cubic_congruential_1gb_p32_exact.txt
+G_Using_SHA-1,g03_g_using_sha,26,28,default,0.000000000000000444,0,0,robust/rtest -x  -f <gen> -e <etalon-512MB-prefix> -p 28 -q 28 -d 1 -n 0 -t 26 -r 1,logs/g03_g_using_sha_p28_default.txt
+G_Using_SHA-1,g03_g_using_sha,26,28,exact,0.000000000000000261,0,0,robust/rtest -x -k -f <gen> -e <etalon-512MB-prefix> -p 28 -q 28 -d 1 -n 0 -t 26 -r 1,logs/g03_g_using_sha_p28_exact.txt
+G_Using_SHA-1,g03_g_using_sha,26,30,default,0.000000000000000222,0,0,robust/rtest -x  -f <gen> -e <etalon-512MB-prefix> -p 30 -q 30 -d 1 -n 0 -t 26 -r 1,logs/g03_g_using_sha_p30_default.txt
+G_Using_SHA-1,g03_g_using_sha,26,30,exact,0.000000000000000017,0,0,robust/rtest -x -k -f <gen> -e <etalon-512MB-prefix> -p 30 -q 30 -d 1 -n 0 -t 26 -r 1,logs/g03_g_using_sha_p30_exact.txt
+G_Using_SHA-1,g03_g_using_sha,26,31,default,0.000000000000000000,0,0,robust/rtest -x  -f <gen> -e <etalon-512MB-prefix> -p 31 -q 31 -d 1 -n 0 -t 26 -r 1,logs/g03_g_using_sha_p31_default.txt
+G_Using_SHA-1,g03_g_using_sha,26,31,exact,0.000000000000000004,0,0,robust/rtest -x -k -f <gen> -e <etalon-512MB-prefix> -p 31 -q 31 -d 1 -n 0 -t 26 -r 1,logs/g03_g_using_sha_p31_exact.txt
+G_Using_SHA-1,g03_g_using_sha,26,32,default,0.000000000000000000,0,0,robust/rtest -x  -f <gen> -e <etalon-512MB-prefix> -p 32 -q 32 -d 1 -n 0 -t 26 -r 1,logs/g03_g_using_sha_p32_default.txt
+G_Using_SHA-1,g03_g_using_sha,26,32,exact,0.000000000000000001,0,0,robust/rtest -x -k -f <gen> -e <etalon-512MB-prefix> -p 32 -q 32 -d 1 -n 0 -t 26 -r 1,logs/g03_g_using_sha_p32_exact.txt

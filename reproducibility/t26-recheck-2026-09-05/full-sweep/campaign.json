@@ -1,0 +1,35 @@
+{
+  "campaign": "t26_recheck",
+  "generator_dir": "/Users/yashbelani/Library/CloudStorage/Dropbox/0-Shen Research/0-Yash_New_Mac_Shen-Project/My-RNGs-Tests/NIST_Bad_Generators_20260409_0810",
+  "generator_glob": "*.bin",
+  "etalon": "/Users/yashbelani/Library/CloudStorage/Dropbox/test_data/etal.bin",
+  "rtest": "/Users/yashbelani/Documents/robust-randomness-suite/robust/rtest",
+  "xor": true,
+  "ksexact": true,
+  "ks_backend": "exact-gmp (-k)",
+  "max_p_cap": 120,
+  "threshold": 1e-10,
+  "charts_enabled": false,
+  "tests": [
+    {
+      "test_num": 26,
+      "title": "Squeeze",
+      "dimension": 1,
+      "n_value": 0,
+      "modifier": null,
+      "p_values": [
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "parse_kind": "single_lastline",
+      "chart_coords": [
+        0
+      ],
+      "start_p": 2
+    }
+  ],
+  "elapsed_s": 2563.7
+}

@@ -31,13 +31,34 @@ import sys
 from pathlib import Path
 
 FLOAT_RE = re.compile(r"[-+]?(?:\d+\.\d*|\.\d+)(?:[eE][-+]?\d+)?")
+# A whole token that is a fixed-decimal number. Used with fullmatch so that
+# "nan", "1.2e5x" or a word from a diagnostic cannot pass as a result.
+RESULT_TOKEN_RE = re.compile(r"[-+]?\d+\.\d+")
 
 FIXTURES = (
     ("random_like", "SHAKE256 stream, should look random",
      "shake_256(b'robust suite experiments v1')"),
-    ("structured", "the bytes 01 repeated, should be detected",
+    ("structured", "the ASCII bytes '0' and '1' repeated (0x30 0x31)",
      "b'01' repeated"),
 )
+
+
+# Bytes the tested generator consumes per unit of -p, measured with "rtest -r 2"
+# on this catalog (the etalon consumes exactly half as much). Used to warn
+# before a run that the chosen input size cannot support, rather than letting it
+# surface later as an end-of-input that looks like a test limitation.
+BYTES_PER_SAMPLE = {
+    22: 16_777_304, 23: 512_024, 24: 2_048_048, 25: 192_016, 26: 18_447_383,
+    27: 8_000_016, 28: 10_804_480, 29: 32_784, 30: 32_784, 31: 32_784,
+    32: 8_000_016, 33: 8_000_016, 34: 96_016, 35: 800_016, 36: 16_016,
+    37: 800_016, 38: 800_016, 39: 800_016, 40: 800_016, 41: 800_016,
+}
+
+
+def required_bytes(test_num, samples):
+    """Tested-file bytes a run needs, or None if the test is not tabulated."""
+    per = BYTES_PER_SAMPLE.get(test_num)
+    return None if per is None else per * samples
 
 
 def sha256(path):
@@ -98,7 +119,9 @@ def build_inputs(inputs_dir, size_bytes):
 
 # Refusals a statistic is documented to make, matched against its own -v output.
 # Random Excursions and its variant abort when the stream yields too few
-# excursion cycles, which NIST specifies.
+# excursion cycles, which NIST specifies. The ASCII fixture triggers this: the
+# bytes 0x30 0x31 carry five one-bits in every sixteen, so the random walk
+# drifts steadily downward instead of returning to zero, and few cycles form.
 KNOWN_DECLINES = (
     ("too few cycles", "statistic_declined_too_few_cycles"),
 )
@@ -119,9 +142,14 @@ def explain_empty_output(cmd, cwd):
         verbose.append(arg)
     verbose.insert(1, "-v")
     r = subprocess.run(verbose, cwd=cwd, capture_output=True, text=True)
-    blob = r.stdout + r.stderr
+    blob = (f"$ {' '.join(verbose)}\nreturncode: {r.returncode}\n"
+            f"--- stdout ---\n{r.stdout}\n--- stderr ---\n{r.stderr}")
+    if r.returncode != 0:
+        # The diagnostic run itself failed, so its text is not trustworthy
+        # evidence about why the first run was silent.
+        return "no_output_unexplained", blob
     for needle, status in KNOWN_DECLINES:
-        if needle in blob:
+        if needle in r.stdout or needle in r.stderr:
             return status, blob
     return "no_output_unexplained", blob
 
@@ -129,29 +157,47 @@ def explain_empty_output(cmd, cwd):
 def classify(result, dimension):
     """Return (status, p_value_or_None, raw_string)."""
     if result.returncode != 0:
-        return ("process_failure", None, "")
+        return ("process_failure", None, "", [])
     if "oops" in result.stdout or "oops" in result.stderr:
-        return ("ran_out_of_data", None, "")
-    found = FLOAT_RE.findall(result.stdout)
-    if not found:
+        return ("ran_out_of_data", None, "", [])
+    # rtest prints the p-value vector as whitespace-separated fixed-decimal
+    # numbers, five per line. Take only lines that are entirely such numbers, so
+    # a diagnostic line cannot contribute a value, and require the exact count.
+    values, raw_tokens = [], []
+    for line in result.stdout.splitlines():
+        tokens = line.split()
+        if not tokens:
+            continue
+        if all(RESULT_TOKEN_RE.fullmatch(t) for t in tokens):
+            raw_tokens.extend(tokens)
+            values.extend(float(t) for t in tokens)
+        elif values:
+            # numbers already seen, then something else: stop rather than
+            # stitching unrelated text onto the result vector
+            break
+
+    if not raw_tokens:
         # Empty output is not self-explaining, so it is not accepted as a
         # decline on its own. The caller re-runs with -v and only a recognised
         # refusal is treated as one; anything else fails visibly.
-        return ("no_output", None, "")
-    if len(found) < dimension:
-        return ("parse_error", None, "")
-    raw = found[0]
-    value = float(raw)
-    if not math.isfinite(value):
-        return ("numerical_failure", None, raw)
+        return ("no_output", None, "", [])
+    if len(values) != dimension:
+        return ("parse_error", None, " ".join(raw_tokens[:4]), [])
+    if not all(math.isfinite(v) for v in values):
+        return ("numerical_failure", None, raw_tokens[0], values)
+    if not all(0.0 <= v <= 1.0 for v in values):
+        # a p-value outside [0,1] is not a p-value
+        return ("out_of_range", None, raw_tokens[0], values)
+
+    raw = raw_tokens[0]
+    value = values[0]
     if value <= 0.0:
-        # below the driver's 18-decimal printing floor, or a small negative from
-        # cancellation in the default kernel. Either way the true value is not
-        # known, so it is not reported as a measured detection.
-        return ("below_printing_floor", value, raw)
-    if value >= 1.0:
-        return ("exactly_one", value, raw)
-    return ("reported", value, raw)
+        # A printed zero says the value fell below the driver's fixed-decimal
+        # output, nothing more. It is not a measured detection and not a bound.
+        return ("numerically_unresolved", value, raw, values)
+    if value == 1.0:
+        return ("exactly_one", value, raw, values)
+    return ("reported", value, raw, values)
 
 
 def main():
@@ -177,6 +223,21 @@ def main():
     inputs, curves, logs = out / "inputs", out / "curves", out / "logs"
     for d in (inputs, curves, logs):
         d.mkdir()
+
+    # Say up front which planned runs the chosen input size cannot support.
+    undersized = []
+    for tnum in tests:
+        for size in list(TEST_CATALOG[tnum].p_values)[:a.max_sizes]:
+            need = required_bytes(tnum, size)
+            if need is not None and need > size_bytes:
+                undersized.append((tnum, size, need))
+    if undersized:
+        print(f"note: {len(undersized)} planned run(s) need more than the "
+              f"{a.size_mb} MB inputs and will stop at end of input:")
+        for tnum, size, need in undersized:
+            print(f"   test {tnum} at p=q={size} needs {need/1e6:.0f} MB")
+        biggest = max(n for _t, _s, n in undersized)
+        print(f"   pass --size-mb {int(biggest/1e6) + 1} to cover all of them.\n")
 
     print(f"building {len(FIXTURES) + 1} inputs of {a.size_mb} MB ...")
     input_rows, reference = build_inputs(inputs, size_bytes)
@@ -204,6 +265,7 @@ def main():
 
     cols = ["test_num", "title", "fixture", "dimension", "n_value", "modifier",
             "samples", "xor", "ks_backend", "p_value_raw", "numeric_status",
+            "coordinate_plotted", "all_coordinates", "curve",
             "returncode", "repo_revision", "command", "stdout_file"]
     summary = []
     incomplete = []
@@ -234,13 +296,41 @@ def main():
                     r = subprocess.run(cmd, cwd=out, capture_output=True, text=True)
                     stdout_rel = Path("logs") / f"{tag}.txt"
                     (out / stdout_rel).write_text(r.stdout + r.stderr)
-                    status, value, raw = classify(r, cfg.dimension)
+                    status, value, raw, all_values = classify(r, cfg.dimension)
                     if status == "no_output":
                         status, explain = explain_empty_output(cmd, out)
                         (out / stdout_rel).write_text(
                             r.stdout + r.stderr
                             + "\n--- re-run with -v to explain empty output ---\n"
                             + explain)
+
+                    # The curves depend on the saved statistic samples, not on
+                    # whether the p-value could be reported. A run whose value is
+                    # zero or one still has two complete distributions worth
+                    # looking at, so it is drawn and annotated rather than
+                    # dropped from the family.
+                    coord = cfg.chart_coords[0]
+                    sd = out / sample_dir
+                    curve = "not attempted"
+                    if status in ("reported", "numerically_unresolved", "exactly_one"):
+                        try:
+                            tv = renderer.read_values(sd / f"000000.test.{coord:04d}")
+                            ev = renderer.read_values(sd / f"000000.etal.{coord:04d}")
+                        except (OSError, ValueError) as exc:
+                            curve = f"samples unreadable: {exc}"
+                        else:
+                            if len(tv) != size or len(ev) != size:
+                                curve = (f"sample count mismatch: {len(tv)}/{len(ev)} "
+                                         f"where {size} expected")
+                            elif not (all(math.isfinite(x) for x in tv)
+                                      and all(math.isfinite(x) for x in ev)):
+                                curve = "non-finite values in samples"
+                            else:
+                                panels.append((size, value if value is not None else 0.0,
+                                               tv, ev))
+                                ok_runs += 1
+                                curve = "drawn"
+
                     all_statuses.append(status)
                     w.writerow({
                         "test_num": tnum, "title": cfg.title, "fixture": fixture,
@@ -248,20 +338,14 @@ def main():
                         "modifier": cfg.modifier if cfg.modifier is not None else "",
                         "samples": size, "xor": True, "ks_backend": backend,
                         "p_value_raw": raw, "numeric_status": status,
+                        "coordinate_plotted": coord,
+                        "all_coordinates": " ".join(f"{v:.18f}" for v in all_values),
+                        "curve": curve,
                         "returncode": r.returncode, "repo_revision": revision,
-                        "command": " ".join(cmd), "stdout_file": str(stdout_rel)})
+                        "command": json.dumps(cmd), "stdout_file": str(stdout_rel)})
                     f.flush()
-                    if status == "reported":
-                        coord = cfg.chart_coords[0]
-                        sd = out / sample_dir
-                        try:
-                            tv = renderer.read_values(sd / f"000000.test.{coord:04d}")
-                            ev = renderer.read_values(sd / f"000000.etal.{coord:04d}")
-                            panels.append((size, value, tv, ev))
-                            ok_runs += 1
-                        except (OSError, ValueError):
-                            pass
-                    print(f"   {fixture:<12} p={size:<6} {status:<22} {raw or ''}")
+                    print(f"   {fixture:<12} p={size:<6} {status:<24} "
+                          f"curve={curve:<12} {raw or ''}")
                 per_fixture_panels[fixture] = (panels, ok_runs)
                 if ok_runs == 0:
                     incomplete.append((tnum, fixture))

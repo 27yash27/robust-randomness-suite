@@ -43,6 +43,12 @@ def main() -> int:
     parser.add_argument("--n-groups", type=int, default=3)
     parser.add_argument("--tests", nargs="+", type=int, default=list(range(22, 32)))
     parser.add_argument("--xor", action=argparse.BooleanOptionalAction, default=True)
+    parser.add_argument("--ksexact", action="store_true",
+                        help="forwarded to each worker; without it the workers use "
+                             "the default KS routine, which underflows at large "
+                             "sample sizes on some platforms")
+    parser.add_argument("--max-p", type=int, default=10_000,
+                        help="forwarded to each worker as its sample-size cap")
     parser.add_argument("--results-root", type=Path, default=Path("sweep_results"),
                         help="Where to write results (default: ./sweep_results)")
     args = parser.parse_args()
@@ -81,8 +87,11 @@ def main() -> int:
                "--generator-dir", str(gdir),
                "--etalon", str(args.etalon.resolve()),
                "--results-root", str(args.results_root.resolve()),
-               "--xor" if args.xor else "--no-xor",
-               "--tests"]
+               "--max-p", str(args.max_p),
+               "--xor" if args.xor else "--no-xor"]
+        if args.ksexact:
+            cmd.append("--ksexact")
+        cmd += ["--tests"]
         cmd.extend(str(t) for t in args.tests)
         proc = subprocess.Popen(cmd, stdout=log_f, stderr=subprocess.STDOUT)
         procs.append((gi, proc, group, log_path))

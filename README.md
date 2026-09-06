@@ -1,60 +1,69 @@
 # Robust randomness testing suite
 
-Tests a random-bit generator and tells you whether it is distinguishable from
-random, with a p-value you can actually trust.
+This package tests whether a stream of bits can be distinguished from
+independent, unbiased random bits.
 
-Ordinary randomness tests compute a p-value from an approximation whose error is
-not bounded, so a small value might mean a bad generator or just a bad
-approximation. This suite compares your generator against itself XOR-ed with a
-fixed file instead. If the generator is random, both sides are random, so the
-two samples must match. Comparing them with a Kolmogorov-Smirnov test gives a
-p-value that needs no assumption about the distribution of the statistic, which
-is the assumption ordinary tests get wrong. It still relies on the samples being
-independent and on the arithmetic being sound, so read the limits below.
+It applies the same statistic to two samples from your generator, transforming
+one of them by XOR with a fixed reference file. Under the randomness model that
+transformation leaves the distribution unchanged, so the two samples can be
+compared directly with a two-sample Kolmogorov-Smirnov test. That avoids having
+to derive a null distribution for each statistic separately, which is where
+approximation error usually enters. The same code computes both samples, so an
+inaccurate statistic costs sensitivity rather than validity.
 
-41 tests, covering Diehard and most of NIST STS. Built on Alexander Shen's
-[`rtest`](https://github.com/alexander-shen/rtest), extended from 21 tests to 41.
+Small p-values are evidence against the randomness model. A large p-value does
+not certify a generator, and the numerical limits in step 5 are real; read them
+before drawing conclusions.
+
+41 tests, covering Diehard and most of NIST STS. Yash Belani added 20 tests
+(numbers 22 to 41) to Alexander Shen's original
+[`rtest`](https://github.com/alexander-shen/rtest).
 Theory: [lirmm-03065320](https://hal.archives-ouvertes.fr/lirmm-03065320/),
 [lirmm-03371151](https://hal.archives-ouvertes.fr/lirmm-03371151/).
 
 ---
 
-## 1. What you need before you start
+## 1. Install the dependencies
 
-- **GMP and GSL**, plus a C++ compiler.
-  - Debian/Ubuntu: `sudo apt-get install libgmp-dev libgsl-dev`
-  - macOS: `brew install gmp gsl`
-- **Python 3** for the plotting scripts. Standard library only, nothing to install.
-- **Your generator's output in a file**: raw bytes, no header. 300 MB is a good
-  size. Smaller works, but the heavy tests will run out of data.
-- **An etalon file**: any fixed file of at least the same size. Its quality does
-  not matter, only its size. Make one with:
-  ```bash
-  head -c 300000000 /dev/urandom > etalon.bin
-  ```
-
-## 2. Build it
+GMP, GSL and a C++ compiler, plus **Python 3.10 or later** for the scripts
+(standard library only, nothing to `pip install`).
 
 ```bash
-cd robust
-make
+sudo apt-get install libgmp-dev libgsl-dev     # Debian/Ubuntu
+brew install gmp gsl                            # macOS
 ```
 
-You now have the `rtest` binary. Steps 3 to 7 below all run from this
-`robust/` directory; step 8 runs from the repository root and says so.
+On Apple Silicon, set these before building, because the Makefile looks in
+`/usr/local` while Homebrew installs to `/opt/homebrew`:
 
-- **On Apple Silicon**, run this first, because the Makefile looks in
-  `/usr/local` and Homebrew installs to `/opt/homebrew`:
-  ```bash
-  export CPATH=/opt/homebrew/include LIBRARY_PATH=/opt/homebrew/lib
-  ```
-- **Before any large run**, raise the stack limit or high-dimension tests will
-  crash without printing anything:
-  ```bash
-  ulimit -s unlimited      # on macOS: ulimit -s 65520
-  ```
-- The Makefile builds with `-fsanitize=address`, which is about ten times
-  slower. Remove it from `FLAGS` for long runs.
+```bash
+export CPATH=/opt/homebrew/include LIBRARY_PATH=/opt/homebrew/lib
+```
+
+Before any large run, raise the stack limit, or high-dimension tests will crash
+with no message: `ulimit -s unlimited` on Linux, `ulimit -s 65520` on macOS.
+
+## 2. Build it and check it
+
+From the repository root:
+
+```bash
+make -C robust
+make -C robust check
+```
+
+`make check` takes a few seconds and uses only files in this repository. It
+checks four things: that the generators still match their committed reference
+output, that a known-good input passes, that a known-bad one is detected, and
+that test 36 counts a template wherever it sits in a block. Passing means those
+four checks passed; it is a build sanity check, not evidence that every
+statistic is correct.
+
+The Makefile builds with `-fsanitize=address`, which is about ten times slower.
+Remove it from `FLAGS` for long runs.
+
+Steps 3 to 7 below run from inside `robust/`; steps 8 and 9 run from the
+repository root, and each says so.
 
 Confirm the build is good before you trust any result:
 
@@ -69,7 +78,107 @@ a known-good generator passes, that a known-bad one is detected, and that test
 checks passed. It is a build sanity check, not evidence that every statistic is
 correct.
 
-## 3. Run one test
+## 3. See it work, with no files of your own
+
+The quickest way to see the whole workflow. From the repository root:
+
+```bash
+python3 scripts/reproduce_randomness_demo.py --repo . --out ../randomness-demo
+```
+
+It builds three deterministic 20 MB inputs from recorded recipes, runs test 37
+at five fixed sample sizes against two of them, and writes:
+
+- `shake_fixture.svg` and `ascii_fixture.svg`, the curve comparisons
+- `results.csv`, with the exact command, revision, backend, raw p-value and
+  numerical status for every run
+- `input_manifest.csv`, with the generation recipe and SHA-256 of each input
+- `provenance.json`, plus raw logs and the statistic samples
+
+Open `ascii_fixture.svg` first. Its input is the ASCII bytes `0` and `1`
+repeated, which is strongly biased, and test 37 detects it: the p-value falls
+from 0.33 at 2 samples to about 1.45e-11 at 20, and the two curves visibly pull
+apart. Then open `shake_fixture.svg`, whose input should look random: the curves
+sit on top of each other and the p-values stay unremarkable.
+
+The sample sizes are fixed in advance, so nothing here is selected after the
+fact.
+
+This demonstrates the workflow. It is not the nine-generator validation
+campaign, and it does not estimate a false-positive rate.
+
+## 4. Run every added test
+
+The same idea across all twenty added tests:
+
+```bash
+python3 scripts/run_all_experiments.py --repo . --out ../experiments --size-mb 300
+```
+
+Runs tests 22 to 41 at the sample sizes fixed in
+`scripts/robust_test_catalog.py`, against the same two inputs, and writes one
+SVG per test and fixture plus a `results.csv` recording the command, revision,
+backend, raw p-value, numeric status, plotted coordinate and every coordinate
+value for each run.
+
+It prints, before starting, any planned run your `--size-mb` cannot support.
+Tests 32 and 33 need 640 MB at their largest sample size, so use `--size-mb 700`
+for a complete set; at 300 MB everything else completes. Expect a few runs to
+report `statistic_declined_too_few_cycles`: Random Excursions cannot evaluate
+the biased ASCII input, and says so. Not every test can detect every defect, and
+the runner records why rather than hiding it.
+
+Add `--ksexact` for the exact KS backend. `reproducibility/README.md` explains
+the statuses, the per-test input budget, how to rebuild the nine research
+generators, and what the preserved campaign does and does not establish.
+
+---
+
+## 5. Read the result
+
+- **Between 0.01 and 0.99**: that test found nothing. It does not certify the
+  generator; it means this statistic saw nothing at this sample size.
+- **Very small, say below 1e-6**: evidence that the test can tell your generator
+  from random. Smaller means stronger evidence. The campaign treated below
+  1e-10 as a detection.
+- **Exactly 1.0**: legitimate at very small sample sizes, where the discrete
+  KS distribution really does reach 1. At larger sample sizes it usually means
+  the p-value routine underflowed. See the note below.
+- **`oops, eof in generator`**: your files are too small for that test. Use
+  bigger ones or lower `-p` and `-q`.
+
+Two things that will bite you:
+
+- **The safe sample size depends on your platform.** The default p-value
+  routine works in `long double`, which is 8 bytes on Apple Silicon and 16
+  bytes with a wider exponent on x86-64. On Apple Silicon it underflows above
+  roughly 2500 samples and returns exactly 1.0 whatever the data says; on
+  x86-64 Linux it has been observed to agree with the exact routine at 3000
+  and beyond. Measure it on your own machine with `make check` and a few
+  spot comparisons against `-k`. `-k` selects the GMP backend, which avoids
+  this underflow and is slower; it is not free of every limit, as the next two
+  points describe.
+- **A p-value of exactly 1.0 is not automatically a bug.** At very small
+  sample sizes the discrete KS distribution genuinely reaches 1. Above a few
+  dozen samples, treat it as the underflow above until you have checked with
+  `-k`.
+- **Very small p-values are printed as zero.** The driver prints 18 decimal
+  places, so anything below 1e-18 comes out as `0.000000000000000000`, and the
+  default routine can print a small negative value instead through
+  cancellation. Both mean "smaller than can be shown here", not "no result",
+  and neither certifies a particular value. `-k` removes the cancellation but
+  not the 18-decimal output, and the exact routine reduces its own denominator
+  under 2^128, which can truncate a very small numerator to zero as well. Treat
+  such a point as "too small to report" rather than as a measured number.
+- **A single p-value is not the answer.** The p-value is not monotone in the
+  sample size, so a real signal can appear at one size and vanish at another.
+  Run several sizes and take the smallest value you see. That minimum is a
+  search summary over many sample sizes and coordinates, not a calibrated
+  p-value: it is biased low by the search itself. Fix the family of tests,
+  coordinates and sizes in advance and correct for multiplicity, or report the
+  minimum as exploratory and judge it against a small fixed threshold.
+
+## 6. Test your own generator
 
 ```bash
 ./rtest -x -f yourgen.bin -e etalon.bin -p 40 -q 40 -d 1 -n 100000 -t 37 -r 1
@@ -98,7 +207,7 @@ The flags:
 They are listed in `scripts/robust_test_catalog.py`, and the scripts below read
 them from there, so you never have to type them by hand.
 
-## 4. Or run every test at once
+## 7. Run a whole battery
 
 ```bash
 ./rtest_expansion.sh yourgen.bin etalon.bin     # tests 22-41
@@ -119,49 +228,7 @@ Watch the output suffix, it is inconsistent upstream. `rtest1m.sh` writes
 `.test1g`, `.test10g`. If a result file seems to be missing, that is usually
 why.
 
-## 5. Read the result
-
-- **Between 0.01 and 0.99**: pass. That test found nothing wrong.
-- **Very small, say below 1e-6**: the test can tell your generator from random.
-  Smaller means stronger evidence. In our validation runs anything below 1e-10
-  counted as a real detection.
-- **Exactly 1.0**: legitimate at very small sample sizes, where the discrete
-  KS distribution really does reach 1. At larger sample sizes it usually means
-  the p-value routine underflowed. See the note below.
-- **`oops, eof in generator`**: your files are too small for that test. Use
-  bigger ones or lower `-p` and `-q`.
-
-Two things that will bite you:
-
-- **The safe sample size depends on your platform.** The default p-value
-  routine works in `long double`, which is 8 bytes on Apple Silicon and 16
-  bytes with a wider exponent on x86-64. On Apple Silicon it underflows above
-  roughly 2500 samples and returns exactly 1.0 whatever the data says; on
-  x86-64 Linux it has been observed to agree with the exact routine at 3000
-  and beyond. Measure it on your own machine with `make check` and a few
-  spot comparisons against `-k`, or simply pass `-k`, which is exact
-  everywhere and slower.
-- **A p-value of exactly 1.0 is not automatically a bug.** At very small
-  sample sizes the discrete KS distribution genuinely reaches 1. Above a few
-  dozen samples, treat it as the underflow above until you have checked with
-  `-k`.
-- **Very small p-values are printed as zero.** The driver prints 18 decimal
-  places, so anything below 1e-18 comes out as `0.000000000000000000`, and the
-  default routine can print a small negative value instead through
-  cancellation. Both mean "smaller than can be shown here", not "no result",
-  and neither certifies a particular value. `-k` removes the cancellation but
-  not the 18-decimal output, and the exact routine reduces its own denominator
-  under 2^128, which can truncate a very small numerator to zero as well. Treat
-  such a point as "too small to report" rather than as a measured number.
-- **A single p-value is not the answer.** The p-value is not monotone in the
-  sample size, so a real signal can appear at one size and vanish at another.
-  Run several sizes and take the smallest value you see. That minimum is a
-  search summary over many sample sizes and coordinates, not a calibrated
-  p-value: it is biased low by the search itself. Fix the family of tests,
-  coordinates and sizes in advance and correct for multiplicity, or report the
-  minimum as exploratory and judge it against a small fixed threshold.
-
-## 6. Sweep the sample size
+## 8. Sweep the sample size
 
 Do not just run once. This runs one test across a range of sizes and reports the
 strongest result:
@@ -171,7 +238,7 @@ python3 ../scripts/run_maximal_p_sweep.py --campaign mytest \
     --generator-dir /path/to/generators --etalon etalon.bin --tests 37
 ```
 
-## 7. Look at the curves
+## 9. Look at the curves for one test
 
 To see what a test is actually doing:
 
@@ -189,53 +256,6 @@ Each panel draws the two distributions being compared.
 Options: `-t` any test from 22 to 41, `--sizes` for your own sample sizes,
 `--coord` to pick a coordinate on tests that return several values, `-o` for the
 output filename.
-
-## 8. A worked example you can reproduce
-
-To see the whole workflow run end to end without supplying a generator of your
-own. Note this one runs from the repository root, not from `robust/`:
-
-```bash
-cd ..
-python3 scripts/reproduce_randomness_demo.py --repo . --out ../randomness-demo
-```
-
-It builds three deterministic 20 MB inputs from recorded recipes, runs test 37
-at five fixed sample sizes against two of them, and writes:
-
-- `shake_fixture.svg` and `ascii_fixture.svg`, the curve comparisons
-- `results.csv`, with the exact command, revision, backend, raw p-value and
-  numerical status for every run
-- `input_manifest.csv`, with the generation recipe and SHA-256 of each input
-- `provenance.json`, plus raw logs and the statistic samples
-
-The SHAKE fixture should look random. The ASCII fixture, which is the bytes
-`01` repeated, should be detected: its p-value falls from 0.33 at 2 samples to
-about 1.45e-11 at 20. The sample sizes are fixed in advance, so nothing here is
-selected after the fact.
-
-This demonstrates the workflow. It is not the nine-generator validation
-campaign, and it does not estimate a false-positive rate.
-
-## 9. Every test, on inputs you can rebuild
-
-The same idea across all twenty added tests:
-
-```bash
-python3 scripts/run_all_experiments.py --repo . --out ../experiments --size-mb 300
-```
-
-Runs tests 22 to 41 at the sample sizes fixed in
-`scripts/robust_test_catalog.py`, against one input that should look random and
-one that should not, and writes an SVG per test and fixture plus a `results.csv`
-recording the command, revision, backend, raw p-value and numeric status of
-every run. Add `--ksexact` for the exact KS routine, `--tests` to narrow it
-down, and raise `--size-mb` if a heavy test reports running out of data.
-
-See `reproducibility/` for how to rebuild the nine research generators, the
-input hashes, and the preserved campaign results.
-
----
 
 ## What is in here
 

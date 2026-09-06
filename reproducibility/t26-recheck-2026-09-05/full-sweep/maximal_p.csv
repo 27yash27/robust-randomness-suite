@@ -1,0 +1,10 @@
+generator_code,generator_file,test_num,title,start_p,max_p,final_objective,final_numeric_status,ks_backend,beats_threshold,best_obj_in_sweep,best_obj_p,best_obj_numeric_status,best_obj_beats_threshold,bad_reason_at_ceiling,n_probes
+g01_blum_blum_shub,bad_Blum-Blum-Shub_1GB.bin,26,Squeeze,2,54,0.21367451088329464,ok,exact-gmp (-k),no,0.21367451088329464,54,ok,no,eof,11
+g02_cubic_congruential_1gb,bad_Cubic_Congruential_1GB.bin,26,Squeeze,2,54,0,censored_zero,exact-gmp (-k),unresolved,0,48,censored_zero,unresolved,eof,11
+g03_g_using_sha,bad_G_Using_SHA-1_1GB.bin,26,Squeeze,2,97,0,censored_zero,exact-gmp (-k),unresolved,0,64,censored_zero,unresolved,eof,13
+g04_linear_congruential_1gb,bad_Linear_Congruential_1GB.bin,26,Squeeze,2,54,0.44470651932736005,ok,exact-gmp (-k),no,0.017902960705268763,48,ok,no,eof,11
+g05_micali_schnorr_1gb,bad_Micali-Schnorr_1GB.bin,26,Squeeze,2,54,0.75970787064340595,ok,exact-gmp (-k),no,0.52206949414280868,48,ok,no,eof,11
+g06_modular_exponentiation_1gb,bad_Modular_Exponentiation_1GB.bin,26,Squeeze,2,54,0.75970787064340595,ok,exact-gmp (-k),no,0.16140443523241432,48,ok,no,eof,11
+g07_quadratic_congruential_ii,bad_Quadratic_Congruential_II_1GB.bin,26,Squeeze,2,54,2.9999999999999998e-18,ok,exact-gmp (-k),yes,2.9999999999999998e-18,54,ok,yes,eof,11
+g08_quadratic_congruential_i,bad_Quadratic_Congruential_I_1GB.bin,26,Squeeze,2,54,0.59848425637352709,ok,exact-gmp (-k),no,0.21453463154903457,16,ok,no,eof,11
+g09_xor_1gb,bad_XOR_1GB.bin,26,Squeeze,2,54,4.8842456019779998e-06,ok,exact-gmp (-k),no,4.8842456019779998e-06,54,ok,no,eof,11

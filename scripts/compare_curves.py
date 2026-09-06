@@ -139,8 +139,16 @@ def build_svg(title, subtitle, panels):
                    f'font-family="Helvetica,Arial,sans-serif" font-size="13" '
                    f'fill="#111">p = q = {size}</text>')
         colour = "#b00020" if pval == pval and pval < 0.01 else "#333"
-        if pval == pval and pval <= 0.0:
-            label = "KS p-value &lt; 1e-18"
+        if pval != pval:
+            label = "KS p-value unavailable"
+        elif pval <= 0.0:
+            # A printed zero establishes only that the value fell below what the
+            # driver's fixed-decimal output can show. Rounding, cancellation in
+            # the default kernel and rational reduction in the GMP kernel are
+            # different mechanisms, and none of them proves a bound.
+            label = "KS p-value numerically unresolved (printed 0)"
+        elif pval >= 1.0:
+            label = f"KS p-value {pval:.4g} (at the upper limit)"
         else:
             label = f"KS p-value {pval:.4g}"
         out.append(f'<text x="{px + 26}" y="{py + 32}" '
@@ -207,8 +215,10 @@ def main():
                 print(" no p-value parsed, skipped")
                 continue
             if pval <= 0.0:
-                print(f" p-value {pval:.4g} (below printable resolution; "
-                      f"rerun with -k for an exact value)")
+                print(f" p-value {pval:.4g} (numerically unresolved: below the "
+                      f"driver's printed resolution. -k uses the GMP kernel, "
+                      f"which avoids cancellation but does not remove the "
+                      f"fixed-decimal output or its own rational reduction.)")
             elif pval >= 1.0:
                 print(f" p-value {pval:.4g} (exactly 1; legitimate at tiny "
                       f"sample sizes, otherwise suspect KS underflow)")
