@@ -37,6 +37,25 @@ Read `numeric_status` in the results rather than only the p-value:
 | `no_output_unexplained` | silent, and the `-v` re-run gave no recognised reason | yes |
 | `process_failure` | `rtest` exited non-zero | yes |
 
+There is a companion column, `observed_reason`. It is empty except where a run
+was predicted undersized and then failed to report a value: there it holds what
+the statistic actually said, while `numeric_status` records `ran_out_of_data`.
+
+**Three scripts, three vocabularies.** They are different tools and their tables
+are not interchangeable. The one above is `run_all_experiments.py`. The other
+two are shorter:
+
+| script | statuses |
+|---|---|
+| `run_all_experiments.py` | the ten above, plus `observed_reason` |
+| `run_maximal_p_sweep.py` | `ok`, `censored_zero`, `eof`, `rtest_failed`, `unresolved`, `parse_error` |
+| `reproduce_randomness_demo.py` | `finite_reported`, `exactly_one`, `zero_unresolved`, `unresolved_tie`, `incomplete_samples`, `numerical_failure`, `parse_error`, `eof`, `process_failure` |
+
+The correspondences worth knowing: the sweep's `censored_zero` is this table's
+`numerically_unresolved`, and the sweep's `ok` covers both `reported` and
+`exactly_one`, so a sweep row reading `ok` at a large sample size still deserves
+the scrutiny `docs/reading-results.md` describes.
+
 Curves are drawn whenever the statistic samples exist, including runs whose
 p-value is zero or one; those panels are labelled "numerically unresolved"
 rather than given an invented bound.
@@ -47,12 +66,39 @@ excursion cycles. The bytes `0x30 0x31` carry five one-bits in every sixteen, so
 the walk drifts steadily downward rather than returning to zero, and too few
 cycles form. That is the test reporting its own limit.
 
-A full run of all twenty tests at `--size-mb 700` produces **192 runs: 176
-curves drawn and 16 declines**, with every one of the twenty tests yielding at
-least one curve. Of those 192, 142 report an ordinary p-value, 28 are
-numerically unresolved and 6 sit at exactly one; all 176 of those are drawn and
-annotated rather than dropped. At `--size-mb 300` the four largest runs of tests
-32 and 33 additionally hit the input budget.
+**A decline is not evidence against the generator.** It is a statement about the
+sample size and the data available, nothing more. The clearest demonstration is
+that these same two tests also decline at some sample sizes on the `random_like`
+SHAKE-256 fixture, which is this repository's own example of a stream that
+should look random. If a decline meant the generator had been rejected, that
+fixture would be rejected too.
+
+When a run was already flagged as undersized before it started, the binding
+constraint is the input budget rather than anything about the data, so it is
+recorded as `ran_out_of_data` with the statistic's own words preserved in the
+`observed_reason` column beside it.
+
+A full run of all twenty tests at `--size-mb 700` produces **200 runs: 182
+curves drawn and 18 declines**, with every one of the twenty tests yielding at
+least one curve. 200 is the complete plan: 20 tests x 5 sample sizes x 2
+fixtures. Of the 200, 172 report an ordinary p-value, 7 sit at exactly one and
+3 are numerically unresolved; all 182 of those are drawn and annotated rather
+than dropped. The 18 declines are tests 32 and 33, which is where the
+`random_like` counts below come from.
+
+The 18 break down as all ten `structured` runs of both tests, plus four of the
+five `random_like` runs of each. That second half is the point made above: the
+fixture that is supposed to look random also produces declines, so a decline
+cannot be read as a verdict on the generator.
+
+These numbers are configuration-dependent, so state the configuration with
+them. Measured on **macOS 26.6.2, arm64**, Python 3.9.6, `--size-mb 700`, the
+**default `psmirnov2x` backend** (no `--ksexact`), on an `-O2` build from
+`make -C robust fast`. A different platform, input size or KS backend will move
+the reported/unresolved split in particular; re-derive rather than quote these
+if any of those differ. At `--size-mb 300` tests 32 and 33 cannot reach their
+two largest sample sizes at all, and those runs are recorded as
+`ran_out_of_data`.
 
 ### Input budget
 

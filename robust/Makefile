@@ -31,7 +31,18 @@ KS_HEADERS = ../kolmogorov-smirnov/ksmirnov.h ../kolmogorov-smirnov/k1smirnov.h 
 KS_C = ../kolmogorov-smirnov/ksmirnov.c ../kolmogorov-smirnov/k1smirnov.c ../kolmogorov-smirnov/ks2mp.c
 
 # needed for gsl library and for standard math library
-FLAGS = -I /usr/local/include -L /usr/local/bin/ -lgsl -lgslcblas -lm -lgmp -fsanitize=address
+# -L names a directory searched for libraries; /usr/local/lib holds them,
+# /usr/local/bin holds executables. This read bin, which linked only because
+# LIBRARY_PATH or the system paths covered for it, and emitted
+# "ld: warning: search path '/usr/local/bin/' not found" on every build.
+FLAGS = -I /usr/local/include -L /usr/local/lib -lgsl -lgslcblas -lm -lgmp -fsanitize=address
+
+# The default build carries AddressSanitizer, which is around ten times slower.
+# "make fast" is the same binary without it, for long runs. It is a separate
+# target rather than a FLAGS override because overriding FLAGS alone does not
+# rebuild an rtest that is already up to date: make compares timestamps, not
+# flags, so the override silently kept the sanitizer build.
+FAST_FLAGS = -O2 -I /usr/local/include -L /usr/local/lib -lgsl -lgslcblas -lm -lgmp
 
 rtest: rtest.c test_func.h $(TESTS_C) $(CPP_INCLUDE) $(CPP_CODE) generators.c generators.h $(KS_HEADERS) $(KS_C) ../general/general.c ../general/general.h; \
 $(CC) -o rtest rtest.c $(TESTS_C) $(CPP_CODE) generators.c $(KS_C) ../general/general.c $(FLAGS)
@@ -49,9 +60,14 @@ test-nonperiodic-boundary: test_nonperiodic_boundary.c test_nonperiodic.c genera
 
 check: rtest test-generators test-nonperiodic-boundary; \
    ./check.sh
-   
+
+# Unconditionally relinks, so it cannot hand back a stale sanitizer binary.
+fast: ; \
+   $(CC) -o rtest rtest.c $(TESTS_C) $(CPP_CODE) generators.c $(KS_C) ../general/general.c $(FAST_FLAGS); \
+   echo "built rtest without AddressSanitizer; 'make' restores the checked build"
+
 clean: ; \
-   rm *~ *.o a.out rtest test-generators tmp.out; \
+   rm -f *~ *.o a.out rtest test-generators test-nonperiodic-boundary tmp.out; \
    cd doc; make clean; cd ..; \
    exit 0;
 
@@ -59,4 +75,4 @@ install: rtest; \
 sudo cp rtest $(SCRIPTS) /usr/local/bin/
 
 uninstall: ; \
-sudo rm /usr/local/bin/rtest /usr/local/bin/rtest*m.sh
+sudo rm -f /usr/local/bin/rtest /usr/local/bin/rtest*.sh

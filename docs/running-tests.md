@@ -12,14 +12,25 @@ Commands run from the repository root unless a subshell says otherwise.
 ## Building for speed, and installing
 
 The Makefile builds with `-fsanitize=address`, which is roughly ten times
-slower. For long runs override `FLAGS` on the command line rather than editing
-the file, so nothing tracked changes:
+slower. For long runs:
 
 ```bash
-make -C robust FLAGS="-O2 -I /usr/local/include -L /usr/local/lib -lgsl -lgslcblas -lm -lgmp"
+make -C robust fast
 ```
 
-On Apple Silicon use `/opt/homebrew` in place of `/usr/local` there.
+That relinks unconditionally without the sanitizer. `make -C robust` afterwards
+restores the checked build.
+
+**Do not do this by overriding `FLAGS`.** `make` compares timestamps, not
+flags, so once `rtest` has been built — which the two commands at the top of
+this page do — a `FLAGS=...` override prints ``make: `rtest' is up to date.``
+and exits 0 without rebuilding anything. You get the sanitizer binary and no
+warning that you did, which on a multi-hour sweep is expensive: the same test
+takes 4.29 s optimised and 17.9 s under the sanitizer. If you must override
+`FLAGS`, pass `-B` with it.
+
+On Apple Silicon, export `CPATH` and `LIBRARY_PATH` as the README shows; the
+`fast` target picks them up the same way the default build does.
 
 `make -C robust install` copies `rtest` and the battery scripts into
 `/usr/local/bin` using `sudo`. Nothing in this guide needs it, because every
@@ -28,10 +39,7 @@ Python scripts. It matters for one thing: the upstream `rtest1m.sh` to
 `rtest10g.sh` batteries call `rtest` by bare name, so they only work after
 installing, or when run from inside `robust/` with `.` on the `PATH`.
 
-`make -C robust uninstall` removes `rtest` and the upstream batteries, but
-**not** `rtest_expansion.sh`: its `rm` glob is `rtest*m.sh`, which the added
-script's name does not match. Delete that one by hand, or see the note in
-`CHANGES-vs-upstream.md`.
+`make -C robust uninstall` removes all of them again.
 
 ## Test your own generator
 

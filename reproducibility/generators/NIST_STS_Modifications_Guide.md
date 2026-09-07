@@ -7,9 +7,20 @@ downstream randomness testing.
 **Base software:** NIST Statistical Test Suite (STS) version 2.1.2
 (https://csrc.nist.gov/projects/random-bit-generation/documentation-and-software)
 
+**Step 0, before anything else: download and unpack NIST STS 2.1.2** from the
+URL above, so that you have an `sts-2.1.2/` directory. This directory holds only
+the files that *differ* from that tree, not the tree itself, so running `make`
+here without doing this first will fail: the `makefile` references about twenty
+NIST sources that are not redistributed here. `README.md` beside this guide
+gives the overlay steps in order, including the `obj/` directory the makefile
+writes to but never creates.
+
 **Prerequisites:**
 - macOS or Linux with GCC
-- OpenSSL 3.x development libraries (`brew install openssl` on macOS)
+- OpenSSL 3.x development libraries (`brew install openssl` on macOS).
+  `OPENSSL_PREFIX` in the makefile is hardcoded to Homebrew on Apple Silicon
+  (`/opt/homebrew/opt/openssl@3`). Change it to `/usr/local/opt/openssl@3` on
+  Intel Homebrew, or typically `/usr` or `/usr/local` on Linux.
 - Python 3.x (for the automation scripts)
 
 ---

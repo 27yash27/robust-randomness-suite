@@ -37,6 +37,13 @@ FLOAT_LINE_RE = re.compile(
     r"^\s*[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?(?:\s+[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?)*\s*$"
 )
 
+# Magnitude at or below which an objective is an arithmetic artifact rather than
+# a measurement. rtest prints 18 decimals, so a genuine reported p-value is
+# either 0 or at least 1e-18; anything at the scale of double-precision epsilon
+# (2**-52 = 2.22e-16) came out of cancellation in the KS kernel, whatever its
+# sign. 1e-15 sits above epsilon and far below any printable value.
+CENSOR_EPSILON = 1e-15
+
 
 def parse_args() -> argparse.Namespace:
     repo_root = Path(__file__).resolve().parent.parent
@@ -186,13 +193,18 @@ def run_one(rtest: Path, tested: Path, etalon: Path, cwd: Path, rel_out_dir: Pat
         return record
     record["values"] = values
     record["objective"] = min(values)
-    # A zero or negative objective is not exhausted input. rtest prints 18
+    # A zero or near-zero objective is not exhausted input. rtest prints 18
     # decimal places, so any p-value below 1e-18 comes out as 0.000...0, and
-    # the default KS kernel can return a small negative value by cancellation.
-    # Both mean "smaller than we can print", i.e. the strongest detection in
-    # the sweep, so they are kept and flagged rather than thrown away. Rerun
-    # such a point with -k for an exact value.
-    if record["objective"] <= 0.0:
+    # the default KS kernel can return a small value of either sign by
+    # cancellation. All of these mean "smaller than we can print", i.e. the
+    # strongest detection in the sweep, so they are kept and flagged rather
+    # than thrown away. Rerun such a point with -k for an exact value.
+    #
+    # Flagged on magnitude, not on sign: -8.88e-16 and +2.22e-16 are the same
+    # non-result, and 2.22e-16 is exactly 2**-52, double-precision epsilon.
+    # Testing "<= 0.0" classified the positive one as ok and let it drive
+    # beats_threshold, reporting an arithmetic artifact as a measurement.
+    if abs(record["objective"]) <= CENSOR_EPSILON:
         record["status"] = "censored_zero"
         record["note"] = (
             "p-value at or below the driver's printing floor; the true value is "

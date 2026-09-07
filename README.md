@@ -48,8 +48,9 @@ This repository was created by copying upstream rather than by forking, so
 
 ## 1. Install
 
-GMP, GSL, a C++ compiler, and Python 3.10+ for the scripts (standard library
-only, nothing to `pip install`).
+GMP, GSL, a C++ compiler, and Python 3.9 or later for the scripts (standard
+library only, nothing to `pip install`). 3.9 is what the macOS Command Line
+Tools install below provides, so on macOS you need no second Python.
 
 ```bash
 sudo apt-get install libgmp-dev libgsl-dev      # Debian/Ubuntu
@@ -70,6 +71,14 @@ On Apple Silicon set these before building, because the Makefile looks in
 
 ```bash
 export CPATH=/opt/homebrew/include LIBRARY_PATH=/opt/homebrew/lib
+```
+
+No Homebrew, or no `sudo`? Build GMP and GSL into a prefix you own and point
+the same two variables at it. Nothing in this repository needs changing:
+
+```bash
+./configure --prefix="$HOME/.local" && make && make install   # in each source tree
+export CPATH="$HOME/.local/include" LIBRARY_PATH="$HOME/.local/lib"
 ```
 
 Before any large run raise the stack limit, or high-dimension tests crash with
@@ -117,11 +126,17 @@ python3 scripts/run_all_experiments.py --repo . --out ../experiments --size-mb 3
 ```
 
 Runs tests 22 to 41 at the sizes fixed in `scripts/robust_test_catalog.py` and
-writes one SVG per test and fixture, plus a `results.csv`. It prints any
-planned run your `--size-mb` cannot support; tests 32 and 33 need 700 MB for a
-complete set. Expect a few runs to report `statistic_declined_too_few_cycles`:
-not every test can evaluate every input, and the runner records why rather
-than hiding it.
+writes one SVG per test and fixture, plus a `results.csv`. It prints any planned
+run your `--size-mb` cannot support before starting; `--size-mb 700` is enough
+for every run in the catalog, and at 300 MB the two largest runs of tests 32 and
+33 are recorded as `ran_out_of_data`.
+
+Expect declines even so. At 700 MB, 18 of the 200 runs report
+`statistic_declined_too_few_cycles` — all ten `structured` runs of tests 32 and
+33, and four of five `random_like` runs of each. That is Random Excursions
+saying it saw too few cycles to evaluate, which is a statement about the sample,
+not a verdict on the generator: it declines on the fixture that is *meant* to
+look random too. The runner records the reason rather than hiding it.
 
 ## 5. Test your own files
 
@@ -171,10 +186,14 @@ Intended to be **GPL-2.0-or-later**, which is both what the Dieharder ancestry
 requires and what Alexander Shen wants so the suite can be packaged in Linux
 distributions.
 
-It is not in force yet, and there is no `LICENSE` file, for one reason:
+It is not in force yet, and there is no `LICENSE` file, for two reasons. First,
 upstream `rtest` declares no license, and Shen holds the copyright on the 113
-files here that are byte-identical to it. A short written grant from him
-settles it. **Until then, do not redistribute the combined work.**
+files here that are byte-identical to it. Second, the Yann Ollivier notice on
+`spectral_tests/rand.h` and `rand.cpp` says the code "may not be sold" and may
+be used freely only in free programs — a field-of-use restriction that
+GPL-2.0 §6 does not permit — and `rand.cpp` is linked into the `rtest` binary
+this build produces. **Until both are resolved, do not redistribute the
+combined work.**
 
-`LICENSING.md` gives the component-by-component breakdown, including the
-separate notice on `spectral_tests/rand.h` that must travel with the code.
+`LICENSING.md` gives the component-by-component breakdown and what each of the
+two outstanding permissions would need to say.

@@ -14,7 +14,7 @@ Read those as recorded exploratory outcomes, for three reasons:
 
 - Nine generators over ten tests cannot establish a false-positive rate.
 - The minimum over a sweep is biased low by the search itself.
-- 27 of the 90 rows report exactly 1.0, through the backend that is known to
+- 36 of the 90 rows report exactly 1.0, through the backend that is known to
   underflow at that sample size. See `reading-results.md`.
 
 The campaign metadata records XOR mode as enabled throughout, so this
@@ -46,6 +46,25 @@ That check establishes the mechanism on a sample of settings. It does not
 replace the 36 recorded rows, which would need those rows rerun with
 `--ksexact`. Raw logs and commands:
 `reproducibility/campaign-2026-05-02/saturation-check/`.
+
+## Which platforms this has been checked on
+
+Everything here — the build, `make check`, the demo, the full run of tests 22 to
+41, and the saturation measurements — was carried out on **macOS on Apple
+Silicon (arm64)**. It has not been re-derived on Linux or x86-64.
+
+That matters more than usual, because several documented behaviours are
+explicitly platform-dependent and only one side of each has been measured here:
+
+- `long double` is 8 bytes on Apple Silicon and 16 with a wider exponent on
+  x86-64, which moves where `psmirnov2x` underflows.
+- The stack limit at which high-dimension tests segfault differs for the same
+  reason.
+- `hashlib` is OpenSSL-backed on some Linux builds, which may lift the
+  `shake_256` output cap that the input generator works around.
+
+Treat the numbers in this repository as measured on arm64 macOS and as
+plausible but unconfirmed elsewhere.
 
 ## Reproducing or extending it
 

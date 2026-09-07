@@ -25,8 +25,26 @@ fi
 echo "upstream: $UPSTREAM_SHA"
 echo
 
+# The file list normally comes from git. From a source archive there is no .git,
+# and "git ls-files" then fails and yields nothing — which used to report 0
+# identical and 0 new, i.e. it told the reader this repository's provenance
+# claims were false when they are not. Fall back to the filesystem instead, and
+# say so, because a filesystem listing also picks up build products that git
+# would not track.
+if git rev-parse --git-dir >/dev/null 2>&1; then
+  LISTING=git
+  FILES=$(git ls-files)
+else
+  LISTING=archive
+  echo "note: no git checkout here, so the file list comes from the filesystem."
+  echo "      This works, but anything you have built (rtest, *.o) counts as new,"
+  echo "      so the new-file total is not checked in this mode."
+  echo
+  FILES=$(find . -type f ! -path './.git/*' | sed 's|^\./||' | sort)
+fi
+
 same=0; modified=""; new=0
-for f in $(git ls-files); do
+for f in $FILES; do
   case "$f" in
     reproducibility/*|scripts/*|tools/*|LICENSING.md|CHANGES-vs-upstream.md) continue ;;
   esac
@@ -57,13 +75,22 @@ if [ "$modified" != "$expected" ]; then
   rc=1
 fi
 
-# The counts are quoted in CHANGES-vs-upstream.md and in README.md, so they are
-# checked too: without this they go stale silently the next time a file is added.
-if [ "$same" != "$expected_same" ] || [ "$new" != "$expected_new" ]; then
+# The counts are quoted in CHANGES-vs-upstream.md, so they are checked too:
+# without this they go stale silently the next time a file is added. Only in git
+# mode -- from an archive the "new" total includes build products, so checking it
+# would report a mismatch that says nothing about provenance.
+if [ "$LISTING" = "git" ]; then
+  if [ "$same" != "$expected_same" ] || [ "$new" != "$expected_new" ]; then
+    echo
+    echo "MISMATCH: counts are $same identical / $new new,"
+    echo "but CHANGES-vs-upstream.md records $expected_same identical / $expected_new new."
+    echo "Update that file or this script."
+    rc=1
+  fi
+elif [ "$same" != "$expected_same" ]; then
   echo
-  echo "MISMATCH: counts are $same identical / $new new,"
-  echo "but CHANGES-vs-upstream.md records $expected_same identical / $expected_new new."
-  echo "Update that file (and the count in README.md) or this script."
+  echo "MISMATCH: $same files are identical to upstream, but"
+  echo "CHANGES-vs-upstream.md records $expected_same."
   rc=1
 fi
 
@@ -71,4 +98,9 @@ if [ "$rc" -ne 0 ]; then
   exit 1
 fi
 echo
-echo "The modified set and the counts match CHANGES-vs-upstream.md."
+if [ "$LISTING" = "git" ]; then
+  echo "The modified set and the counts match CHANGES-vs-upstream.md."
+else
+  echo "The modified set and the identical-file count match CHANGES-vs-upstream.md."
+  echo "(new-file total not checked: see the note above)"
+fi

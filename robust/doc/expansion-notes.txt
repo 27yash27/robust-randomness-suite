@@ -18,8 +18,19 @@ test statistic t(B) we form two samples:
 If A is truly random, then A xor E is also random for any fixed E, whatever the
 quality of E. Since the same code for t is applied to both samples, a rough
 approximation or a coding error affects U and V the same way and cancels in the
-comparison. Validity is therefore structural: an implementation error can cost
-sensitivity, but it cannot cause a good generator to be rejected.
+comparison.
+
+The scope of that argument matters, and an earlier version of this file
+overstated it. It holds for a deterministic function applied identically to
+both samples, and under those assumptions it is what keeps the null calibration
+intact: an inaccurate statistic should not by itself make a good generator
+fail. It is not a guarantee against arbitrary implementation errors. It does
+not cover an error that makes the two paths consume different amounts of input,
+or that leaves one path depending on buffer state carried over from the other.
+An implementation error will generally cost sensitivity and change individual
+p-values, so it is not correct to say it can never cause a good generator to be
+rejected. The README states it in these same terms; that phrasing is the one to
+quote.
 
 
 2. THE EXPANSION
@@ -116,17 +127,36 @@ Run "make" in robust/ to build the rtest binary. A single test is invoked as
 6. VALIDATION
 -------------
 
-The new tests were run against nine NIST reference generators:
+The authoritative account is docs/validation.md. It states what the campaign
+does and does not establish, why its exact p-values cannot be reproduced, and
+which rows are affected by the KS saturation. Read it rather than this summary
+if the two ever disagree.
 
-  - controls (Blum-Blum-Shub, Linear Congruential, Micali-Schnorr): no false
-    positives in any configuration;
-  - six known-defective generators: all six detected (best objective below the
-    10^-10 threshold);
-  - tests 32/33 (Random Excursions) correctly return "skip" on generators too
-    biased to produce the required number of cycles -- a skip is a structural
-    rejection of the generator, not a failure of the test.
+In brief: tests 22 to 31 -- not all of 22 to 41 -- were run against nine NIST
+reference generators. The three intended controls (Blum-Blum-Shub, Linear
+Congruential, Micali-Schnorr) crossed the 10^-10 threshold on no test, and the
+other six crossed it on at least one.
 
-Results agreed whether or not the XOR step was used.
+Three qualifications, all of which earlier versions of this file left out:
+
+  - Those are recorded exploratory outcomes, not an estimated false-positive
+    rate. Nine generators over ten tests cannot establish one, and the minimum
+    over a sweep is biased low by the search itself.
+  - 36 of the 90 rows report a p-value of exactly 1.0, through the default KS
+    backend which is known to underflow at those sample sizes. The campaign is
+    not clean; see docs/validation.md and the measurements under
+    reproducibility/campaign-2026-05-02/saturation-check/.
+  - Tests 32/33 (Random Excursions) decline on streams that yield too few
+    excursion cycles, which NIST specifies. A decline is the test reporting its
+    own limit given the sample size and data available. It is NOT evidence
+    against the generator: these two tests also decline at some sample sizes on
+    this repository's own random-like SHAKE-256 fixture, which is the example
+    of a stream that should look random.
+
+There is no no-XOR comparison in this repository. The campaign metadata records
+XOR mode as enabled throughout, so any claim that results agreed with and
+without the XOR step is not supported by what is committed here. An earlier
+version of this file asserted that agreement; it should not have.
 
 
 7. LIMITATIONS

@@ -140,11 +140,22 @@ def main():
                             status = 'numerical_failure'
                         elif value == 0:
                             status = 'zero_unresolved'
+                        elif value == 1.0:
+                            # Legitimate at tiny sample sizes, where the
+                            # discrete KS distribution really does reach 1, and
+                            # a sign of the psmirnov2x underflow above a few
+                            # dozen. Either way it is not an ordinary reported
+                            # value, and calling it finite_reported hid that
+                            # from the first line a new user ever sees.
+                            status = 'exactly_one'
                         else:
                             status = 'finite_reported'
                     except ValueError:
                         status = 'parse_error'
-                if status == 'finite_reported':
+                # A p-value of exactly 1.0 still has two complete distributions
+                # worth drawing, so it is charted like an ordinary value; it is
+                # only the status that distinguishes it.
+                if status in ('finite_reported', 'exactly_one'):
                     sample_dir = out / rel_samples
                     tested = renderer.read_values(sample_dir / '000000.test.0000')
                     reference = renderer.read_values(sample_dir / '000000.etal.0000')
@@ -152,7 +163,7 @@ def main():
                         status = 'incomplete_samples'
                     else:
                         panels.append((size, value, tested, reference))
-                if status != 'finite_reported':
+                if status not in ('finite_reported', 'exactly_one'):
                     failures += 1
                 writer.writerow(dict(
                     fixture=fixture, test=TEST, dimension=DIMENSION, n_words=N_WORDS,

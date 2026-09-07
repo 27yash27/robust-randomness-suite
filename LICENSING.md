@@ -6,7 +6,10 @@ packaged in Linux distributions under the GPL, and the components below are
 compatible with that.
 
 **Status: not yet in force.** The repository carries no `LICENSE` file, because
-the decisive permission is not ours to give. See "What is still needed".
+two decisive permissions are not ours to give: one from Alexander Shen, and one
+from Yann Ollivier, whose notice on `spectral_tests/` is **not GPL-compatible**
+as it stands. Shen's grant alone does not settle the question. See "What is
+still needed".
 
 ## What this repository is made of
 
@@ -18,7 +21,7 @@ the decisive permission is not ours to give. See "What is still needed".
 | Tests 29, 30, 35 | `test_dab_dct.c`, `test_dab_filtering.c`, `test_gcd.c` | **Dieharder** (R. G. Brown) | **GPL.** |
 | Test 31 | `test_linear_complexity.c` | **NIST and Dieharder** both | **GPL**, through the Dieharder side. |
 | Tests 32, 33, 36-41 | `test_random_excursions*.c`, `test_nonperiodic.c`, `test_runs_nist.c`, `test_longest_run.c`, `test_cusum.c`, `test_approximate_entropy.c`, `test_universal.c` | **NIST Statistical Test Suite** (SP 800-22) | Work of a U.S. government agency: **public domain**, freely combinable. |
-| Spectral test support | `spectral_tests/rand.h` and companions | **Yann Ollivier, 1997-1999** | Free distribution and modification, provided the notice is kept and changes are described. See below. |
+| Spectral test support | `spectral_tests/rand.h` and `spectral_tests/rand.cpp`, **which is compiled and linked into the `rtest` binary** | **Yann Ollivier, 1997-1999** | Notice retention and change description, **plus "may not be sold" and free use only in free programs. Not GPL-compatible.** See below. |
 | Everything added here | `scripts/`, `reproducibility/`, `robust/check.sh`, `robust/test_nonperiodic_boundary.c`, `robust/rtest_expansion.sh`, the 20 `test_*.c` files | Yash Belani | intended GPL-2.0-or-later, with the framework |
 
 `CHANGES-vs-upstream.md` lists exactly which files differ from upstream, and
@@ -29,10 +32,13 @@ upstream revision `6ae81dcec44d5cbe46c7bc58620c275a7cfa3c1d`.
 
 Twelve of the twenty added tests draw on Dieharder, which is GPL, and a combined
 work that includes GPL code inherits the GPL. This is an obligation, not a
-preference. Nothing else here conflicts with it: NIST STS code is public domain,
-Marsaglia released Diehard without restriction, and the Ollivier notice permits
-distribution and modification. So GPL-2.0-or-later is simultaneously what the
-Dieharder ancestry requires and what Shen wants for distribution packaging.
+preference. NIST STS code is public domain and Marsaglia released Diehard
+without restriction, so neither conflicts. So GPL-2.0-or-later is simultaneously
+what the Dieharder ancestry requires and what Shen wants for distribution
+packaging.
+
+**One component does conflict**, and it is not resolved by anything Shen can
+grant: the Ollivier notice on `spectral_tests/`. See point 2 below.
 
 The per-test origins are taken from `robust/doc/expansion-notes.txt`, which
 records them test by test. Where a test is marked "Diehard + Dieharder" the
@@ -51,12 +57,31 @@ GPL-2.0-or-later, ideally added to his own repository. Until then this document
 records an intention, not a grant, and **the combined work should not be
 redistributed.**
 
-**2. The Ollivier notice.** `spectral_tests/rand.h` carries its own terms:
-distribution is free provided the whole notice travels with it, and any
-modification must be accompanied by a description of the changes. Those
-conditions are compatible with the GPL, but they must be honoured: keep the
-notice, and if that file is ever modified, record what changed. It is currently
-byte-identical to upstream.
+**2. A GPL-compatible grant from Yann Ollivier, or the removal of his code.**
+`spectral_tests/rand.h` and `spectral_tests/rand.cpp` both carry his notice.
+Beyond notice retention and change description, it says:
+
+> This software may not be sold. … This software or any modified version of it
+> may be freely used in free programs. … If you want to use it in a program you
+> sell, contact me
+
+That is a field-of-use restriction, and it is **not compatible with the GPL**.
+GPL-2.0 §1 expressly permits charging a fee to distribute copies, and §6
+forbids imposing any further restriction on recipients. An earlier version of
+this document described the terms as notice-retention only and called them
+GPL-compatible; that was wrong.
+
+This is not academic. `rand.cpp` is listed in `CPP_CODE` in `robust/Makefile`
+and is compiled and linked into the `rtest` binary the documented build
+produces, so the restriction attaches to the binary every user builds.
+
+Three ways out, and one has to be chosen before the suite is released under any
+licence: ask Ollivier for a GPL-compatible grant; make the spectral test an
+optional component so the default binary carries none of his code; or drop it.
+
+One obligation the notice imposes **is** already met: `rand.cpp:20-23` records
+the "revision by andrei" modification inline, which is the change description
+it asks for. Both files are byte-identical to upstream.
 
 ## Attribution
 

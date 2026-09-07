@@ -99,24 +99,62 @@ def parse_args():
     return ap.parse_args()
 
 
+# hashlib.shake_256().digest(n) refuses n >= 2**29 with "length is too large",
+# so a single squeeze cannot produce the 640 MB tests 32 and 33 need at their
+# largest sample size. Sizes at or below the cap keep the original one-shot
+# construction byte for byte, so inputs built before this change are unchanged;
+# only larger sizes use the counter-indexed form below. Both stream to disk in
+# chunks, so peak memory is one chunk rather than the whole file.
+SHAKE_MAX = 2 ** 29 - 1
+SHAKE_CHUNK = 1 << 26  # 64 MiB
+
+
+def write_shake(path, seed, size_bytes):
+    """Write size_bytes of SHAKE-256 output. Returns the recipe actually used."""
+    with path.open("wb") as fh:
+        if size_bytes <= SHAKE_MAX:
+            fh.write(hashlib.shake_256(seed).digest(size_bytes))
+            return f"shake_256({seed!r}).digest(size)"
+        written = index = 0
+        while written < size_bytes:
+            take = min(SHAKE_CHUNK, size_bytes - written)
+            fh.write(hashlib.shake_256(seed + b":%d" % index).digest(take))
+            written += take
+            index += 1
+    return (f"concat over i of shake_256({seed!r} + b':' + str(i)).digest("
+            f"{SHAKE_CHUNK}), last chunk truncated to reach size; used above "
+            f"{SHAKE_MAX} bytes because a single squeeze is capped there")
+
+
+def write_structured(path, size_bytes):
+    """Write the ASCII bytes '0' and '1' repeated, streaming, exact length."""
+    unit = b"01"
+    block = unit * (SHAKE_CHUNK // len(unit))
+    with path.open("wb") as fh:
+        written = 0
+        while written < size_bytes:
+            take = min(len(block), size_bytes - written)
+            fh.write(block[:take])
+            written += take
+
+
 def build_inputs(inputs_dir, size_bytes):
     rows = []
     for name, role, recipe in FIXTURES:
         path = inputs_dir / f"{name}.bin"
         if name == "structured":
-            data = b"01" * (size_bytes // 2)
+            write_structured(path, size_bytes)
+            used = recipe
         else:
-            data = hashlib.shake_256(b"robust suite experiments v1").digest(size_bytes)
-        path.write_bytes(data)
-        del data
+            used = write_shake(path, b"robust suite experiments v1", size_bytes)
         rows.append({"file": path.name, "role": role, "size_bytes": size_bytes,
-                     "sha256": sha256(path), "recipe": recipe})
+                     "sha256": sha256(path), "recipe": used})
     # the fixed reference; its quality does not affect validity, only its size
     ref = inputs_dir / "reference.bin"
-    ref.write_bytes(hashlib.shake_256(b"robust suite reference v1").digest(size_bytes))
+    used = write_shake(ref, b"robust suite reference v1", size_bytes)
     rows.append({"file": ref.name, "role": "fixed XOR reference (etalon)",
                  "size_bytes": size_bytes, "sha256": sha256(ref),
-                 "recipe": "shake_256(b'robust suite reference v1')"})
+                 "recipe": used})
     return rows, ref
 
 
@@ -238,6 +276,10 @@ def main():
             need = required_bytes(tnum, size)
             if need is not None and need > size_bytes:
                 undersized.append((tnum, size, need))
+    # Runs we already know are underfed. A statistic that then refuses is
+    # reporting a consequence of the budget, not a property of the generator,
+    # so those are recorded as ran_out_of_data with the refusal kept alongside.
+    undersized_runs = {(t, s) for t, s, _n in undersized}
     if undersized:
         print(f"note: {len(undersized)} planned run(s) need more than the "
               f"{a.size_mb} MB inputs and will stop at end of input:")
@@ -258,7 +300,10 @@ def main():
         "purpose": "Runnable experiments for tests 22-41 on deterministic inputs. "
                    "Not the nine-generator validation campaign.",
         "repo_revision": revision,
-        "uncommitted_changes": git(repo, "diff", "HEAD", "--stat") or "",
+        # null, not "", when git could not answer: an empty string reads as
+        # "the tree was clean", which is a different claim from "unknown".
+        # Both are null when this is run from a source archive with no .git.
+        "uncommitted_changes": git(repo, "diff", "HEAD", "--stat"),
         "rtest_sha256": sha256(rtest),
         "ks_backend": backend,
         "xor": True,
@@ -272,7 +317,7 @@ def main():
 
     cols = ["test_num", "title", "fixture", "dimension", "n_value", "modifier",
             "samples", "xor", "ks_backend", "p_value_raw", "numeric_status",
-            "coordinate_plotted", "all_coordinates", "curve",
+            "observed_reason", "coordinate_plotted", "all_coordinates", "curve",
             "returncode", "repo_revision", "command", "stdout_file"]
     summary = []
     incomplete = []
@@ -311,6 +356,15 @@ def main():
                             r.stdout + r.stderr
                             + "\n--- re-run with -v to explain empty output ---\n"
                             + explain)
+                    # This run was flagged undersized before anything ran. If it
+                    # then failed to report a value, the binding constraint is
+                    # the input budget, so say that rather than attributing it
+                    # to the data. The statistic's own words are kept in
+                    # observed_reason so nothing is lost.
+                    observed_reason = ""
+                    if (tnum, size) in undersized_runs and value is None:
+                        observed_reason = status
+                        status = "ran_out_of_data"
 
                     # The curves depend on the saved statistic samples, not on
                     # whether the p-value could be reported. A run whose value is
@@ -347,6 +401,7 @@ def main():
                         "modifier": cfg.modifier if cfg.modifier is not None else "",
                         "samples": size, "xor": True, "ks_backend": backend,
                         "p_value_raw": raw, "numeric_status": status,
+                        "observed_reason": observed_reason,
                         "coordinate_plotted": coord,
                         "all_coordinates": " ".join(f"{v:.18f}" for v in all_values),
                         "curve": curve,
