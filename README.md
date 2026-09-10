@@ -5,46 +5,17 @@ independent, unbiased random bits. 41 tests, covering Diehard and most of
 NIST STS.
 
 **How it works.** A randomness test computes some statistic and asks whether
-the value is surprising. Knowing what "surprising" means normally requires the
-statistic's distribution under true randomness, and deriving that is where
-approximation error enters.
+the value is surprising.
 
-This suite avoids that step. It computes the same statistic on two samples
+This suite computes the same statistic on two samples
 from your generator, having XORed one of them with a fixed reference file. If
 the generator is random, XOR leaves the distribution unchanged, so the two
 samples should look alike, and a two-sample Kolmogorov-Smirnov test compares
-them directly. Because both samples pass through the same code, an inaccurate
-statistic can still leave the null calibration intact — though it will
-generally change individual p-values and the test's power, and it is no
-guarantee against arbitrary implementation errors.
+them directly.
 
 Small p-values are evidence against randomness. A large p-value does not
-certify a generator, and the numerical limits are real: read
+certify a generator: read
 [docs/reading-results.md](docs/reading-results.md) before quoting a number.
-
-## Provenance and credits
-
-The method and the original suite are not mine.
-
-- **The robust two-sample construction** is the work of **Alexander Shen** and
-  **Andrey Romashchenko** (LIRMM, CNRS / Univ. Montpellier), cited jointly for
-  the method in Shen's own `robust/doc/tests-description.tex`. Papers:
-  [lirmm-03065320](https://hal.archives-ouvertes.fr/lirmm-03065320/),
-  [lirmm-03371151](https://hal.archives-ouvertes.fr/lirmm-03371151/).
-- **Theirs:** the driver, the generator layer, the Kolmogorov-Smirnov engine,
-  tests 0 to 21, and every supporting directory. 113 files here are
-  byte-identical to [`alexander-shen/rtest`](https://github.com/alexander-shen/rtest)
-  at `6ae81dce`; Shen's own description is kept as `README-upstream.md`.
-- **Mine (Yash Belani):** tests 22 to 41, `scripts/`, the reproducibility
-  package, and this README. The statistics themselves are adapted from
-  **Diehard** (George Marsaglia), **Dieharder** (Robert G. Brown) and the
-  **NIST Statistical Test Suite** (SP 800-22); `spectral_tests/` includes code
-  by **Yann Ollivier**. `LICENSING.md` gives the per-component detail.
-
-This repository was created by copying upstream rather than by forking, so
-`git blame` attributes Shen's files to my import commit rather than to him.
-`CHANGES-vs-upstream.md` lists exactly which files differ, and
-`tools/check-upstream-provenance.sh` re-derives that list against `6ae81dce`.
 
 ## 1. Install
 
@@ -169,31 +140,23 @@ ent16/ general/ independent/ pipes/ readfile/ spectral_tests/ wav/
 
 `CHANGES-vs-upstream.md` lists the twenty added tests with their sources,
 exactly which files differ from upstream, and which known bugs live where.
-
-## Validation
-
-Tests 22 to 31 were checked against the nine NIST reference generators in one
-exploratory campaign; tests 32 to 41 have no campaign of their own. The three
-intended controls crossed the 1e-10 threshold on no test and the other six
-crossed it on at least one — a recorded outcome, not an estimated
-false-positive rate, and some rows are affected by a known numerical
-saturation. [docs/validation.md](docs/validation.md) states what that campaign
-does and does not establish, and why its p-values cannot be reproduced exactly.
-
-## License
-
-Intended to be **GPL-2.0-or-later**, which is both what the Dieharder ancestry
-requires and what Alexander Shen wants so the suite can be packaged in Linux
-distributions.
-
-It is not in force yet, and there is no `LICENSE` file, for two reasons. First,
-upstream `rtest` declares no license, and Shen holds the copyright on the 113
-files here that are byte-identical to it. Second, the Yann Ollivier notice on
-`spectral_tests/rand.h` and `rand.cpp` says the code "may not be sold" and may
-be used freely only in free programs — a field-of-use restriction that
-GPL-2.0 §6 does not permit — and `rand.cpp` is linked into the `rtest` binary
-this build produces. **Until both are resolved, do not redistribute the
 combined work.**
 
+## Credits
+
+- **The robust two-sample construction** is the work of **Alexander Shen** and
+  **Andrey Romashchenko** (LIRMM, CNRS / Univ. Montpellier), cited jointly for
+  the method in Shen's own `robust/doc/tests-description.tex`. Papers:
+  [lirmm-03065320](https://hal.archives-ouvertes.fr/lirmm-03065320/),
+  [lirmm-03371151](https://hal.archives-ouvertes.fr/lirmm-03371151/).
+- **Theirs:** the driver, the generator layer, the Kolmogorov-Smirnov engine,
+  tests 0 to 21, and every supporting directory. 113 files here are
+  byte-identical to [`alexander-shen/rtest`](https://github.com/alexander-shen/rtest)
+  Shen's own description is kept as `README-upstream.md`.
+- **Mine (Yash Belani):** tests 22 to 41, `scripts/`, the reproducibility
+  package, and this README. The statistics themselves are adapted from
+  **Diehard** (George Marsaglia), **Dieharder** (Robert G. Brown) and the
+  **NIST Statistical Test Suite** (SP 800-22); `spectral_tests/` includes code
+  by **Yann Ollivier**. `LICENSING.md` gives the per-component detail.
 `LICENSING.md` gives the component-by-component breakdown and what each of the
 two outstanding permissions would need to say.
